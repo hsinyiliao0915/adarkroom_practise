@@ -36,14 +36,14 @@ export const BUILDING_RECIPES: BuildingRecipe[] = [
     name: '陷阱 (Trap)',
     description: '設置在森林中的簡易陷阱，定期捕捉小型獵物、毛皮與碎骨。',
     cost: (current) => ({
-      wood: 10 + Math.floor(current * 2)
+      wood: 10 + current * 10
     }),
-    maxCount: 20
+    maxCount: 10
   },
   {
     id: 'huts',
-    name: '棚屋 (Hut)',
-    description: '為無家可歸的流浪者提供遮風避雨之所。每座棚屋可容納 4 名村民。',
+    name: '小屋 (Hut)',
+    description: '為無家可歸的流浪者提供遮風避雨之所。每座小屋可容納 4 名村民。',
     cost: (current) => ({
       wood: 100 + Math.floor(Math.pow(current, 1.4) * 50)
     }),

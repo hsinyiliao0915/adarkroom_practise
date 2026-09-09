@@ -157,7 +157,7 @@ export class MainScene extends Phaser.Scene {
     this.titleText = this.add.text(
       20,
       18,
-      '小 黑 屋 (A Dark Room)',
+      '小 屋 (A Dark Room)',
       createTextStyle('14px', theme.textPrimary)
     );
 

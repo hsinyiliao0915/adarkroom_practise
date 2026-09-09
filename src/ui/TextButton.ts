@@ -62,8 +62,11 @@ export class TextButton extends Phaser.GameObjects.Container {
 
     this.add([this.bgRect, this.cooldownRect, this.borderRect, this.label]);
 
-    // Interactivity
-    this.bgRect.setInteractive({ useHandCursor: true });
+    // Interactivity: define centered hitArea for origin 0.5 rectangle
+    this.bgRect.setInteractive(
+      new Phaser.Geom.Rectangle(-this.btnWidth / 2, -this.btnHeight / 2, this.btnWidth, this.btnHeight),
+      Phaser.Geom.Rectangle.Contains
+    );
     this.bgRect.on('pointerover', this.onPointerOver, this);
     this.bgRect.on('pointerout', this.onPointerOut, this);
     this.bgRect.on('pointerdown', this.onPointerDown, this);
@@ -147,21 +150,24 @@ export class TextButton extends Phaser.GameObjects.Container {
     const theme = ThemeManager.getInstance().getTheme();
     this.cooldownRect.setFillStyle(theme.btnCooldownOverlayHex, theme.btnCooldownOverlayAlpha);
 
+    const isClickable = this.isButtonEnabled && !this.isCooldown;
+    if (this.bgRect.input) {
+      this.bgRect.input.enabled = isClickable;
+      this.bgRect.input.cursor = isClickable ? 'pointer' : 'default';
+    }
+
     if (!this.isButtonEnabled) {
       this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
       this.borderRect.setStrokeStyle(1, theme.btnDisabledBorderHex, 0.4);
       this.label.setColor(theme.btnDisabledText);
-      this.bgRect.disableInteractive();
     } else if (this.isCooldown) {
       this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
       this.borderRect.setStrokeStyle(1, theme.btnDisabledBorderHex, 0.6);
       this.label.setColor(theme.textMuted);
-      this.bgRect.disableInteractive();
     } else {
       this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
       this.borderRect.setStrokeStyle(1, theme.btnBorderHex, theme.btnBorderAlpha);
       this.label.setColor(theme.btnText);
-      this.bgRect.setInteractive({ useHandCursor: true });
     }
   }
 }

@@ -186,7 +186,7 @@ export class SpaceFlightView extends Phaser.GameObjects.Container {
       '俯瞰下方，那顆曾被冰雪與黃沙覆蓋的荒蕪星球正在宇宙中靜靜旋轉。\n' +
       '你回想起了安靜小室裡微弱的壁爐餘燼、依偎著火堆甦醒的建造者，以及在廢墟中建立起聚落的村民們。\n\n' +
       '反應爐閃爍著藍白色的平穩光芒，星際躍遷引擎校準完畢。\n' +
-      '在這無邊寂靜的星辰大海中，小黑屋的荒野旅程已經圓滿落幕。\n' +
+      '在這無邊寂靜的星辰大海中，小屋的荒野旅程已經圓滿落幕。\n' +
       '而文明的全新篇章，正朝著未知的繁星展開……',
       createTextStyle('12px', '#e2e8f0', false, { lineSpacing: 7, wordWrap: { width: 410 } })
     );

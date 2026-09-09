@@ -508,7 +508,7 @@ export class MapSystem {
     state.expedition.enemyAttackCooldown = 0;
     state.expedition.enemyMaxAttackCooldown = 0;
 
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, '你在殘酷的荒野中倒下了...背包中的所有戰利品遺失，你被村民救回了小黑屋。', 'warn');
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, '你在殘酷的荒野中倒下了...背包中的所有戰利品遺失，你被村民救回了小屋。', 'warn');
     EventBus.getInstance().emit(Events.STATE_CHANGED);
   }
 }

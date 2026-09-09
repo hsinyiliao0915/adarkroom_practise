@@ -3,6 +3,7 @@ import { GameData } from '../core/GameState';
 import { TextButton } from './TextButton';
 import { RoomSystem } from '../systems/RoomSystem';
 import { VillageSystem } from '../systems/VillageSystem';
+import { CraftSystem } from '../systems/CraftSystem';
 import { createTextStyle } from '../config/typography';
 import { ThemeManager } from '../config/ThemeManager';
 import { EventBus, Events } from '../core/EventBus';
@@ -105,13 +106,13 @@ export class RoomView extends Phaser.GameObjects.Container {
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
-          VillageSystem.getInstance().build(state, 'cart' as any);
+          CraftSystem.getInstance().craft(state, 'cart');
         }
       }
     });
 
     this.hutBtn = new TextButton(scene, 100, 315, {
-      text: '棚屋 (100 木材)',
+      text: '小屋 (100 木材)',
       width: 180,
       height: 36,
       onClick: () => {
@@ -261,14 +262,14 @@ export class RoomView extends Phaser.GameObjects.Container {
         this.cartBtn.setEnabled(state.resources.wood >= cartCost);
       }
 
-      // Huts
+      // Huts (小屋)
       const hutCount = state.buildings.huts || 0;
       if (hutCount >= 20) {
-        this.hutBtn.setText('棚屋 (已達上限 20)');
+        this.hutBtn.setText('小屋 (已達上限 20)');
         this.hutBtn.setEnabled(false);
       } else {
         const hutCost = 100 + hutCount * 50;
-        this.hutBtn.setText(`棚屋 (${hutCost} 木材) [${hutCount}]`);
+        this.hutBtn.setText(`小屋 (${hutCost} 木材) [${hutCount}]`);
         this.hutBtn.setEnabled(state.resources.wood >= hutCost);
       }
     }
