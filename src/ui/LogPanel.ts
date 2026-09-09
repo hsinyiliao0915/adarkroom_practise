@@ -8,10 +8,13 @@ export class LogPanel extends Phaser.GameObjects.Container {
   private borderRect: Phaser.GameObjects.Rectangle;
   private titleText: Phaser.GameObjects.Text;
   private textEntries: Phaser.GameObjects.Text[] = [];
-  private maxVisibleLines: number = 22;
+  private maxPoolSize: number = 35;
+  private panelHeight: number;
+  private logItems: Array<{ text: string; type: string }> = [];
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 300, height: number = 660) {
     super(scene, x, y);
+    this.panelHeight = height;
 
     // Background
     this.bgRect = scene.add.rectangle(0, 0, width, height, 0x12141a, 0.95);
@@ -37,19 +40,18 @@ export class LogPanel extends Phaser.GameObjects.Container {
 
     this.add([this.bgRect, this.borderRect, this.titleText, divider]);
 
-    // Create pool of text entries
-    const startY = 48;
-    const lineHeight = 26;
-
-    for (let i = 0; i < this.maxVisibleLines; i++) {
+    // Create pool of text entries (position will be dynamically set in renderLogs)
+    for (let i = 0; i < this.maxPoolSize; i++) {
       const entryText = scene.add.text(
         14,
-        startY + i * lineHeight,
+        0,
         '',
         createTextStyle('12px', '#e2e8f0', false, {
-          wordWrap: { width: width - 28, useAdvancedWrap: true }
+          wordWrap: { width: width - 28, useAdvancedWrap: true },
+          lineSpacing: 4
         })
       );
+      entryText.setVisible(false);
       this.textEntries.push(entryText);
       this.add(entryText);
     }
@@ -63,11 +65,41 @@ export class LogPanel extends Phaser.GameObjects.Container {
   }
 
   public initFromState(state: GameData): void {
-    const logs = state.logs.slice(-this.maxVisibleLines);
-    this.renderLogs(logs);
+    if (state && Array.isArray(state.logs)) {
+      this.logItems = [...state.logs].reverse().map((l) => ({
+        text: l.text,
+        type: l.type || 'info'
+      }));
+    }
+    this.renderLogs();
   }
 
   public addLogMessage(text: string, type: string = 'info'): void {
+    this.logItems.unshift({ text, type });
+    if (this.logItems.length > 50) {
+      this.logItems.pop();
+    }
+
+    const state = (this.scene as any).gameState as GameData;
+    if (state && Array.isArray(state.logs)) {
+      state.logs.push({
+        text,
+        time: Date.now(),
+        type: type as any
+      });
+      if (state.logs.length > 50) {
+        state.logs.shift();
+      }
+    }
+
+    this.renderLogs();
+  }
+
+  private renderLogs(): void {
+    const startY = 48;
+    const maxBottomY = this.panelHeight - 16;
+    let currentY = startY;
+
     const colorMap: Record<string, string> = {
       story: '#f6ad55', // warm gold
       event: '#63b3ed', // bright blue
@@ -75,40 +107,28 @@ export class LogPanel extends Phaser.GameObjects.Container {
       info: '#e2e8f0'   // crisp white/gray
     };
 
-    const newColor = colorMap[type] || '#e2e8f0';
+    for (let i = 0; i < this.textEntries.length; i++) {
+      const entryText = this.textEntries[i];
 
-    // Shift text down (newest at top)
-    for (let i = this.maxVisibleLines - 1; i > 0; i--) {
-      this.textEntries[i].setText(this.textEntries[i - 1].text);
-      this.textEntries[i].setColor(this.textEntries[i - 1].style.color);
-      this.updateAlphaForIndex(i);
-    }
+      if (i < this.logItems.length && currentY < maxBottomY) {
+        const item = this.logItems[i];
+        entryText.setText(`> ${item.text}`);
+        entryText.setColor(colorMap[item.type] || '#e2e8f0');
+        entryText.setY(currentY);
+        entryText.setVisible(true);
 
-    this.textEntries[0].setText(`> ${text}`);
-    this.textEntries[0].setColor(newColor);
-    this.textEntries[0].setAlpha(1.0);
-  }
+        if (i === 0) entryText.setAlpha(1.0);
+        else if (i < 3) entryText.setAlpha(0.85);
+        else if (i < 7) entryText.setAlpha(0.65);
+        else if (i < 12) entryText.setAlpha(0.45);
+        else entryText.setAlpha(0.25);
 
-  private renderLogs(logs: Array<{ text: string; type?: string }>): void {
-    const reversed = [...logs].reverse();
-    for (let i = 0; i < this.maxVisibleLines; i++) {
-      if (i < reversed.length) {
-        const item = reversed[i];
-        this.textEntries[i].setText(`> ${item.text}`);
-        const color = item.type === 'story' ? '#f6ad55' : item.type === 'event' ? '#63b3ed' : item.type === 'warn' ? '#fc8181' : '#e2e8f0';
-        this.textEntries[i].setColor(color);
-        this.updateAlphaForIndex(i);
+        // Dynamically advance Y by the actual measured height of this entry plus margin
+        currentY += entryText.height + 8;
       } else {
-        this.textEntries[i].setText('');
+        entryText.setVisible(false);
+        entryText.setText('');
       }
     }
-  }
-
-  private updateAlphaForIndex(index: number): void {
-    if (index === 0) this.textEntries[index].setAlpha(1.0);
-    else if (index < 4) this.textEntries[index].setAlpha(0.85);
-    else if (index < 8) this.textEntries[index].setAlpha(0.65);
-    else if (index < 14) this.textEntries[index].setAlpha(0.45);
-    else this.textEntries[index].setAlpha(0.25);
   }
 }

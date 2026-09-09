@@ -247,6 +247,7 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
       const loaded = SaveManager.getInstance().load(meta.id);
       (scene as any).gameState = loaded;
       (scene as any).switchTab(loaded.activeTab || 'room');
+      (scene as any).logPanel?.initFromState(loaded);
       (scene as any).refreshUI();
       EventBus.getInstance().emit(Events.LOG_MESSAGE, `已成功載入存檔【${meta.name}】。`, 'story');
       this.hide();
@@ -266,6 +267,7 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
       const newGame = SaveManager.getInstance().startNewGame();
       (scene as any).gameState = newGame.state;
       (scene as any).switchTab('room');
+      (scene as any).logPanel?.initFromState(newGame.state);
       (scene as any).refreshUI();
       EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！火堆已熄滅，房間很冷。`, 'story');
       this.hide();

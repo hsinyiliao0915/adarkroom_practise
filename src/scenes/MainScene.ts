@@ -146,6 +146,7 @@ export class MainScene extends Phaser.Scene {
           const newGame = SaveManager.getInstance().startNewGame();
           this.gameState = newGame.state;
           this.switchTab('room');
+          this.logPanel.initFromState(this.gameState);
           this.refreshUI();
           EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！火堆已熄滅，房間很冷。`, 'story');
         }
