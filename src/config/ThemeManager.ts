@@ -55,30 +55,37 @@ export interface ThemePalette {
   modalBackdropAlpha: number;
   modalDividerHex: number;
   modalSlotBgHex: number;
+  // Utility navigation (top right)
+  navText: string;
+  navTextHover: string;
+  navBgHoverHex: number;
+  navBgHoverAlpha: number;
+  navSepColor: string;
 }
 
 export const DARK_THEME: ThemePalette = {
   mode: 'dark',
-  // Outer frame: solid medium-dark slate gray
+  // Outer frame: solid neutral slate gray
   outerBgCss: '#262930',
   
   // Game canvas frame: pure black
   gameBgCss: '#000000',
   gameBgHex: 0x000000,
-  gameBorderCss: '#3f4450',
-  gameBorderHex: 0x3f4450,
+  gameBorderCss: '#404040',
+  gameBorderHex: 0x404040,
   
   textPrimary: '#ffffff',
-  textSecondary: '#94a3b8',
-  textMuted: '#64748b',
+  textSecondary: '#a3a3a3',
+  textMuted: '#737373',
   
   underlineHex: 0xffffff,
-  tabSepColor: '#475569',
+  tabSepColor: '#525252',
   
-  logStory: '#f6ad55', // warm gold
-  logEvent: '#60a5fa', // bright blue
-  logWarn: '#f87171',  // soft red
-  logInfo: '#e2e8f0',  // crisp white
+  // Pure monochrome log levels (distinction purely by alpha)
+  logStory: '#ffffff',
+  logEvent: '#ffffff',
+  logWarn: '#ffffff',
+  logInfo: '#ffffff',
   
   btnBorderHex: 0xffffff,
   btnBorderAlpha: 0.85,
@@ -88,21 +95,27 @@ export const DARK_THEME: ThemePalette = {
   btnBgHoverHex: 0xffffff,
   btnBgHoverAlpha: 0.95,
   btnTextHover: '#000000',
-  btnDisabledBorderHex: 0x475569,
-  btnDisabledText: '#556070',
+  btnDisabledBorderHex: 0x404040,
+  btnDisabledText: '#525252',
   btnCooldownOverlayHex: 0xffffff,
   btnCooldownOverlayAlpha: 0.25,
   
   storesOutlineHex: 0xffffff,
-  storesOutlineAlpha: 0.4,
+  storesOutlineAlpha: 0.35,
   storesTitleBg: '#000000',
   
-  modalBgHex: 0x111317,
-  modalBorderHex: 0x475569,
+  modalBgHex: 0x0a0a0a,
+  modalBorderHex: 0x404040,
   modalBackdropHex: 0x000000,
-  modalBackdropAlpha: 0.7,
-  modalDividerHex: 0x334155,
-  modalSlotBgHex: 0x1e2430
+  modalBackdropAlpha: 0.75,
+  modalDividerHex: 0x262626,
+  modalSlotBgHex: 0x171717,
+
+  navText: '#e5e5e5',
+  navTextHover: '#ffffff',
+  navBgHoverHex: 0xffffff,
+  navBgHoverAlpha: 0.15,
+  navSepColor: '#525252'
 };
 
 export const LIGHT_THEME: ThemePalette = {
@@ -113,20 +126,21 @@ export const LIGHT_THEME: ThemePalette = {
   // Game canvas frame: pure white
   gameBgCss: '#ffffff',
   gameBgHex: 0xffffff,
-  gameBorderCss: '#9ca3af',
-  gameBorderHex: 0x9ca3af,
+  gameBorderCss: '#a3a3a3',
+  gameBorderHex: 0xa3a3a3,
   
   textPrimary: '#000000',
-  textSecondary: '#4b5563',
-  textMuted: '#6b7280',
+  textSecondary: '#525252',
+  textMuted: '#737373',
   
   underlineHex: 0x000000,
-  tabSepColor: '#9ca3af',
+  tabSepColor: '#a3a3a3',
   
-  logStory: '#c2410c', // rich warm amber/brown
-  logEvent: '#1d4ed8', // deep blue
-  logWarn: '#dc2626',  // deep red
-  logInfo: '#111827',  // crisp black
+  // Pure monochrome log levels
+  logStory: '#000000',
+  logEvent: '#000000',
+  logWarn: '#000000',
+  logInfo: '#000000',
   
   btnBorderHex: 0x000000,
   btnBorderAlpha: 0.85,
@@ -136,21 +150,27 @@ export const LIGHT_THEME: ThemePalette = {
   btnBgHoverHex: 0x000000,
   btnBgHoverAlpha: 0.95,
   btnTextHover: '#ffffff',
-  btnDisabledBorderHex: 0xd1d5db,
-  btnDisabledText: '#9ca3af',
+  btnDisabledBorderHex: 0xd4d4d4,
+  btnDisabledText: '#a3a3a3',
   btnCooldownOverlayHex: 0x000000,
   btnCooldownOverlayAlpha: 0.2,
   
   storesOutlineHex: 0x000000,
-  storesOutlineAlpha: 0.4,
+  storesOutlineAlpha: 0.35,
   storesTitleBg: '#ffffff',
   
-  modalBgHex: 0xf8fafc,
-  modalBorderHex: 0x94a3b8,
+  modalBgHex: 0xffffff,
+  modalBorderHex: 0xa3a3a3,
   modalBackdropHex: 0x000000,
-  modalBackdropAlpha: 0.4,
-  modalDividerHex: 0xe2e8f0,
-  modalSlotBgHex: 0xe2e8f0
+  modalBackdropAlpha: 0.35,
+  modalDividerHex: 0xe5e5e5,
+  modalSlotBgHex: 0xf5f5f5,
+
+  navText: '#262626',
+  navTextHover: '#000000',
+  navBgHoverHex: 0x000000,
+  navBgHoverAlpha: 0.1,
+  navSepColor: '#a3a3a3'
 };
 
 export class ThemeManager {

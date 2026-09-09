@@ -5,6 +5,7 @@ import { RoomSystem } from '../systems/RoomSystem';
 import { VillageSystem } from '../systems/VillageSystem';
 import { createTextStyle } from '../config/typography';
 import { ThemeManager } from '../config/ThemeManager';
+import { EventBus, Events } from '../core/EventBus';
 
 export class RoomView extends Phaser.GameObjects.Container {
   private statusText: Phaser.GameObjects.Text;
@@ -19,6 +20,7 @@ export class RoomView extends Phaser.GameObjects.Container {
   private trapBtn: TextButton;
   private cartBtn: TextButton;
   private hutBtn: TextButton;
+  private unsubStoke?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 490) {
     super(scene, x, y);
@@ -40,7 +42,7 @@ export class RoomView extends Phaser.GameObjects.Container {
 
     this.strangerText = scene.add.text(
       20,
-      76,
+      48,
       '',
       createTextStyle('13px', '#e2e8f0', false, {
         wordWrap: { width: width - 40, useAdvancedWrap: true }
@@ -71,6 +73,7 @@ export class RoomView extends Phaser.GameObjects.Container {
         const state = (scene as any).gameState as GameData;
         if (state) {
           RoomSystem.getInstance().stokeFire(state);
+          EventBus.getInstance().emit(Events.ACTION_STOKE_FIRE);
         }
       }
     });
@@ -131,6 +134,14 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.hutBtn
     ]);
 
+    this.unsubStoke = EventBus.getInstance().on(Events.ACTION_STOKE_FIRE, () => {
+      this.stokeFireBtn.triggerCooldown(2500);
+    });
+
+    this.on('destroy', () => {
+      if (this.unsubStoke) this.unsubStoke();
+    });
+
     scene.add.existing(this);
   }
 
@@ -158,8 +169,6 @@ export class RoomView extends Phaser.GameObjects.Container {
 
     if (state.fireState === 'dead') {
       this.statusText.setColor(theme.textMuted);
-    } else if (state.fireState === 'roaring' || state.fireState === 'burning') {
-      this.statusText.setColor(theme.logStory);
     } else {
       this.statusText.setColor(theme.textPrimary);
     }

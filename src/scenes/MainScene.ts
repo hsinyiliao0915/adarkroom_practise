@@ -14,6 +14,7 @@ import { ShipView } from '../ui/ShipView';
 import { SpaceFlightView } from '../ui/SpaceFlightView';
 import { SaveLoadModal } from '../ui/SaveLoadModal';
 import { RoomSystem } from '../systems/RoomSystem';
+import { DevAutoSystem } from '../systems/DevAutoSystem';
 import { createTextStyle } from '../config/typography';
 import { ThemeManager } from '../config/ThemeManager';
 
@@ -42,12 +43,15 @@ export class MainScene extends Phaser.Scene {
   private inlineTabs: TabItem[] = [];
   private activeUnderline!: Phaser.GameObjects.Rectangle;
   private titleText!: Phaser.GameObjects.Text;
+  private themeToggleLink!: Phaser.GameObjects.Text;
+  private autoModeLink!: Phaser.GameObjects.Text;
   private saveLink!: Phaser.GameObjects.Text;
   private newGameLink!: Phaser.GameObjects.Text;
-  private themeToggleLink!: Phaser.GameObjects.Text;
   private utilitySep1!: Phaser.GameObjects.Text;
   private utilitySep2!: Phaser.GameObjects.Text;
+  private utilitySep3!: Phaser.GameObjects.Text;
   private unsubTheme?: () => void;
+  private unsubAutoMode?: () => void;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -126,8 +130,16 @@ export class MainScene extends Phaser.Scene {
       this.applyTheme();
     });
 
+    this.unsubAutoMode = EventBus.getInstance().on(Events.AUTO_MODE_CHANGED, (enabled: boolean) => {
+      if (this.autoModeLink) {
+        this.autoModeLink.setText(enabled ? '[ 自動: 開 ]' : '[ 自動: 關 ]');
+        this.layoutUtilityLinks();
+      }
+    });
+
     this.events.on('destroy', () => {
       if (this.unsubTheme) this.unsubTheme();
+      if (this.unsubAutoMode) this.unsubAutoMode();
     });
 
     // 7. Start Tick Engine & AutoSave
@@ -196,30 +208,46 @@ export class MainScene extends Phaser.Scene {
   private createUtilityLinks(): void {
     const theme = ThemeManager.getInstance().getTheme();
 
-    // Theme Toggle Link (開燈 in dark mode, 熄燈 in light mode)
-    const toggleText = theme.mode === 'dark' ? '開燈' : '熄燈';
-    this.themeToggleLink = this.add.text(800, 20, toggleText, createTextStyle('11px', theme.textMuted));
+    // 1. Theme Toggle Link ([ 開燈 ] in dark mode, [ 熄燈 ] in light mode)
+    const toggleText = theme.mode === 'dark' ? '[ 開燈 ]' : '[ 熄燈 ]';
+    this.themeToggleLink = this.add.text(0, 19, toggleText, createTextStyle('12px', theme.navText));
     this.themeToggleLink.setInteractive({ useHandCursor: true });
-    this.themeToggleLink.on('pointerover', () => this.themeToggleLink.setColor(ThemeManager.getInstance().getTheme().textPrimary));
-    this.themeToggleLink.on('pointerout', () => this.themeToggleLink.setColor(ThemeManager.getInstance().getTheme().textMuted));
+    this.themeToggleLink.on('pointerover', () => this.themeToggleLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
+    this.themeToggleLink.on('pointerout', () => this.themeToggleLink.setColor(ThemeManager.getInstance().getTheme().navText));
     this.themeToggleLink.on('pointerdown', () => {
       ThemeManager.getInstance().toggleTheme();
     });
 
-    this.utilitySep1 = this.add.text(848, 20, '|', createTextStyle('11px', theme.tabSepColor));
+    this.utilitySep1 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
 
-    this.saveLink = this.add.text(868, 20, '存檔管理', createTextStyle('11px', theme.textMuted));
+    // 2. Auto / Dev Mode Link ([ 自動: 關 ] / [ 自動: 開 ])
+    const autoText = DevAutoSystem.getInstance().isEnabled() ? '[ 自動: 開 ]' : '[ 自動: 關 ]';
+    this.autoModeLink = this.add.text(0, 19, autoText, createTextStyle('12px', theme.navText));
+    this.autoModeLink.setInteractive({ useHandCursor: true });
+    this.autoModeLink.on('pointerover', () => this.autoModeLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
+    this.autoModeLink.on('pointerout', () => this.autoModeLink.setColor(ThemeManager.getInstance().getTheme().navText));
+    this.autoModeLink.on('pointerdown', () => {
+      const isNowOn = DevAutoSystem.getInstance().toggle();
+      this.autoModeLink.setText(isNowOn ? '[ 自動: 開 ]' : '[ 自動: 關 ]');
+      this.layoutUtilityLinks();
+    });
+
+    this.utilitySep2 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
+
+    // 3. Save Management Link ([ 存檔管理 ])
+    this.saveLink = this.add.text(0, 19, '[ 存檔管理 ]', createTextStyle('12px', theme.navText));
     this.saveLink.setInteractive({ useHandCursor: true });
-    this.saveLink.on('pointerover', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().textPrimary));
-    this.saveLink.on('pointerout', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().textMuted));
+    this.saveLink.on('pointerover', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
+    this.saveLink.on('pointerout', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().navText));
     this.saveLink.on('pointerdown', () => this.saveLoadModal.show(this));
 
-    this.utilitySep2 = this.add.text(936, 20, '|', createTextStyle('11px', theme.tabSepColor));
+    this.utilitySep3 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
 
-    this.newGameLink = this.add.text(956, 20, '新遊戲', createTextStyle('11px', theme.textMuted));
+    // 4. New Game Link ([ 新遊戲 ])
+    this.newGameLink = this.add.text(0, 19, '[ 新遊戲 ]', createTextStyle('12px', theme.navText));
     this.newGameLink.setInteractive({ useHandCursor: true });
-    this.newGameLink.on('pointerover', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().textPrimary));
-    this.newGameLink.on('pointerout', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().textMuted));
+    this.newGameLink.on('pointerover', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
+    this.newGameLink.on('pointerout', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().navText));
     this.newGameLink.on('pointerdown', () => {
       if (window.confirm('確定要開啟新遊戲嗎？現有歷史存檔將完整保留，系統將為你建立全新開局。')) {
         const newGame = SaveManager.getInstance().startNewGame();
@@ -232,18 +260,44 @@ export class MainScene extends Phaser.Scene {
         EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！房間寒冷刺骨，火堆熄滅了。`, 'story');
       }
     });
+
+    this.layoutUtilityLinks();
+  }
+
+  private layoutUtilityLinks(): void {
+    const rightEdge = 1032;
+    const gap = 8;
+
+    this.newGameLink.setPosition(rightEdge - this.newGameLink.width, 19);
+    this.utilitySep3.setPosition(this.newGameLink.x - gap - this.utilitySep3.width, 19);
+
+    this.saveLink.setPosition(this.utilitySep3.x - gap - this.saveLink.width, 19);
+    this.utilitySep2.setPosition(this.saveLink.x - gap - this.utilitySep2.width, 19);
+
+    this.autoModeLink.setPosition(this.utilitySep2.x - gap - this.autoModeLink.width, 19);
+    this.utilitySep1.setPosition(this.autoModeLink.x - gap - this.utilitySep1.width, 19);
+
+    this.themeToggleLink.setPosition(this.utilitySep1.x - gap - this.themeToggleLink.width, 19);
   }
 
   private applyTheme(): void {
     const theme = ThemeManager.getInstance().getTheme();
     this.cameras.main.setBackgroundColor(theme.gameBgCss);
     this.titleText.setColor(theme.textPrimary);
-    this.themeToggleLink.setText(theme.mode === 'dark' ? '開燈' : '熄燈');
-    this.themeToggleLink.setColor(theme.textMuted);
-    this.utilitySep1.setColor(theme.tabSepColor);
-    this.saveLink.setColor(theme.textMuted);
-    this.utilitySep2.setColor(theme.tabSepColor);
-    this.newGameLink.setColor(theme.textMuted);
+
+    this.themeToggleLink.setText(theme.mode === 'dark' ? '[ 開燈 ]' : '[ 熄燈 ]');
+    this.themeToggleLink.setColor(theme.navText);
+    this.utilitySep1.setColor(theme.navSepColor);
+
+    this.autoModeLink.setColor(theme.navText);
+    this.utilitySep2.setColor(theme.navSepColor);
+
+    this.saveLink.setColor(theme.navText);
+    this.utilitySep3.setColor(theme.navSepColor);
+
+    this.newGameLink.setColor(theme.navText);
+
+    this.layoutUtilityLinks();
 
     this.inlineTabs.forEach((t) => {
       if (t.sepObj) t.sepObj.setColor(theme.tabSepColor);
@@ -350,10 +404,13 @@ export class MainScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    // Forward update to active views for animations/cooldowns
-    if (this.roomView.visible) this.roomView.update(delta);
-    if (this.outsideView.visible) this.outsideView.update(delta);
-    if (this.mapView.visible) this.mapView.update(delta);
-    if (this.spaceFlightView.visible) this.spaceFlightView.update(delta);
+    // 1. Dev auto mode update
+    DevAutoSystem.getInstance().update(delta, this.gameState);
+
+    // 2. Forward update to active views for animations/cooldowns
+    if (this.roomView) this.roomView.update(delta);
+    if (this.outsideView) this.outsideView.update(delta);
+    if (this.mapView && this.mapView.visible) this.mapView.update(delta);
+    if (this.spaceFlightView && this.spaceFlightView.visible) this.spaceFlightView.update(delta);
   }
 }

@@ -1,12 +1,14 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { GameData } from '../core/GameState';
 import { TextButton } from './TextButton';
 import { ResourceSystem } from '../systems/ResourceSystem';
+import { EventBus, Events } from '../core/EventBus';
 
 export class OutsideView extends Phaser.GameObjects.Container {
   private gatherWoodBtn: TextButton;
   private checkTrapsBtn: TextButton;
   private baitTrapsBtn: TextButton;
+  private unsubList: Array<() => void> = [];
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
@@ -21,6 +23,7 @@ export class OutsideView extends Phaser.GameObjects.Container {
         const state = (scene as any).gameState as GameData;
         if (state) {
           ResourceSystem.getInstance().gatherWood(state);
+          EventBus.getInstance().emit(Events.ACTION_GATHER_WOOD);
         }
       }
     });
@@ -35,6 +38,7 @@ export class OutsideView extends Phaser.GameObjects.Container {
         const state = (scene as any).gameState as GameData;
         if (state) {
           ResourceSystem.getInstance().checkTraps(state);
+          EventBus.getInstance().emit(Events.ACTION_CHECK_TRAPS);
         }
       }
     });
@@ -55,6 +59,21 @@ export class OutsideView extends Phaser.GameObjects.Container {
     });
 
     this.add([this.gatherWoodBtn, this.checkTrapsBtn, this.baitTrapsBtn]);
+
+    this.unsubList.push(
+      EventBus.getInstance().on(Events.ACTION_GATHER_WOOD, () => {
+        this.gatherWoodBtn.triggerCooldown(3500);
+      })
+    );
+    this.unsubList.push(
+      EventBus.getInstance().on(Events.ACTION_CHECK_TRAPS, () => {
+        this.checkTrapsBtn.triggerCooldown(8000);
+      })
+    );
+
+    this.on('destroy', () => {
+      this.unsubList.forEach((unsub) => unsub());
+    });
 
     scene.add.existing(this);
   }
