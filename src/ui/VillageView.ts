@@ -50,7 +50,8 @@ export class VillageView extends Phaser.GameObjects.Container {
     this.add(this.bTitle);
 
     const startY = 65;
-    BUILDING_RECIPES.forEach((recipe, idx) => {
+    const villageRecipes = BUILDING_RECIPES.filter((r) => r.id !== 'traps' && r.id !== 'huts');
+    villageRecipes.forEach((recipe, idx) => {
       const rowY = startY + idx * 36;
 
       const nameText = scene.add.text(
@@ -92,7 +93,7 @@ export class VillageView extends Phaser.GameObjects.Container {
     });
 
     // Section 2: Worker Allocation
-    const wTitleY = startY + BUILDING_RECIPES.length * 36 + 10;
+    const wTitleY = startY + villageRecipes.length * 36 + 10;
     this.wTitle = scene.add.text(
       20,
       wTitleY,
