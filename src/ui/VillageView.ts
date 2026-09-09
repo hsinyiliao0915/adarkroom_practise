@@ -61,13 +61,14 @@ export class VillageView extends Phaser.GameObjects.Container {
       );
 
       const costText = scene.add.text(
-        180,
+        400,
         rowY + 2,
         '',
-        createTextStyle('11px', '#94a3b8')
+        createTextStyle('11px', '#94a3b8', false, { align: 'right' })
       );
+      costText.setOrigin(1, 0);
 
-      const buildBtn = new TextButton(scene, 410, rowY + 8, {
+      const buildBtn = new TextButton(scene, 440, rowY + 8, {
         text: '建造',
         width: 60,
         height: 24,

@@ -39,11 +39,12 @@ export class CraftView extends Phaser.GameObjects.Container {
       );
 
       const costText = scene.add.text(
-        180,
+        400,
         rowY + 2,
         '',
-        createTextStyle('11px', '#94a3b8')
+        createTextStyle('11px', '#94a3b8', false, { align: 'right' })
       );
+      costText.setOrigin(1, 0);
 
       const descText = scene.add.text(
         20,
@@ -52,7 +53,7 @@ export class CraftView extends Phaser.GameObjects.Container {
         createTextStyle('10px', '#64748b')
       );
 
-      const craftBtn = new TextButton(scene, 410, rowY + 10, {
+      const craftBtn = new TextButton(scene, 440, rowY + 10, {
         text: '製作',
         width: 60,
         height: 24,
