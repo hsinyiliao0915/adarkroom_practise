@@ -15,6 +15,7 @@ import { SpaceFlightView } from '../ui/SpaceFlightView';
 import { SaveLoadModal } from '../ui/SaveLoadModal';
 import { RoomSystem } from '../systems/RoomSystem';
 import { createTextStyle } from '../config/typography';
+import { ThemeManager } from '../config/ThemeManager';
 
 interface TabItem {
   key: ActiveTab;
@@ -40,6 +41,13 @@ export class MainScene extends Phaser.Scene {
 
   private inlineTabs: TabItem[] = [];
   private activeUnderline!: Phaser.GameObjects.Rectangle;
+  private titleText!: Phaser.GameObjects.Text;
+  private saveLink!: Phaser.GameObjects.Text;
+  private newGameLink!: Phaser.GameObjects.Text;
+  private themeToggleLink!: Phaser.GameObjects.Text;
+  private utilitySep1!: Phaser.GameObjects.Text;
+  private utilitySep2!: Phaser.GameObjects.Text;
+  private unsubTheme?: () => void;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -48,6 +56,10 @@ export class MainScene extends Phaser.Scene {
   create(): void {
     // 1. Load saved state or default
     this.gameState = SaveManager.getInstance().load();
+
+    const theme = ThemeManager.getInstance().getTheme();
+    this.cameras.main.setBackgroundColor(theme.gameBgCss);
+    ThemeManager.getInstance().applyDomTheme();
 
     // 2. Setup Top Title & Inline Tabs & Utilities
     this.createHeaderAndTabs();
@@ -110,6 +122,14 @@ export class MainScene extends Phaser.Scene {
       this.updateTabsLayout();
     });
 
+    this.unsubTheme = EventBus.getInstance().on(Events.THEME_CHANGED, () => {
+      this.applyTheme();
+    });
+
+    this.events.on('destroy', () => {
+      if (this.unsubTheme) this.unsubTheme();
+    });
+
     // 7. Start Tick Engine & AutoSave
     TickEngine.getInstance().start(() => this.gameState, 500);
     SaveManager.getInstance().startAutoSave(() => this.gameState, 10000);
@@ -119,16 +139,18 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createHeaderAndTabs(): void {
+    const theme = ThemeManager.getInstance().getTheme();
+
     // Title
-    this.add.text(
+    this.titleText = this.add.text(
       20,
       18,
       '小 黑 屋 (A Dark Room)',
-      createTextStyle('14px', '#cbd5e1')
+      createTextStyle('14px', theme.textPrimary)
     );
 
     // Active Tab Underline (1px line under current tab)
-    this.activeUnderline = this.add.rectangle(320, 36, 40, 1, 0xffffff, 0.9);
+    this.activeUnderline = this.add.rectangle(320, 36, 40, 1, theme.underlineHex, 0.9);
     this.activeUnderline.setOrigin(0, 0);
 
     const tabDefs: Array<{ key: ActiveTab; label: string }> = [
@@ -141,23 +163,23 @@ export class MainScene extends Phaser.Scene {
     ];
 
     tabDefs.forEach((def) => {
-      const textObj = this.add.text(0, 18, def.label, createTextStyle('14px', '#94a3b8'));
+      const textObj = this.add.text(0, 18, def.label, createTextStyle('14px', theme.textSecondary));
       textObj.setInteractive({ useHandCursor: true });
       textObj.on('pointerover', () => {
         if (this.gameState.activeTab !== def.key) {
-          textObj.setColor('#e2e8f0');
+          textObj.setColor(ThemeManager.getInstance().getTheme().textPrimary);
         }
       });
       textObj.on('pointerout', () => {
         if (this.gameState.activeTab !== def.key) {
-          textObj.setColor('#94a3b8');
+          textObj.setColor(ThemeManager.getInstance().getTheme().textSecondary);
         }
       });
       textObj.on('pointerdown', () => {
         this.switchTab(def.key);
       });
 
-      const sepObj = this.add.text(0, 18, '|', createTextStyle('14px', '#475569'));
+      const sepObj = this.add.text(0, 18, '|', createTextStyle('14px', theme.tabSepColor));
       sepObj.setVisible(false);
 
       this.inlineTabs.push({
@@ -172,17 +194,33 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createUtilityLinks(): void {
-    const saveLink = this.add.text(880, 20, '存檔管理', createTextStyle('11px', '#64748b'));
-    saveLink.setInteractive({ useHandCursor: true });
-    saveLink.on('pointerover', () => saveLink.setColor('#cbd5e1'));
-    saveLink.on('pointerout', () => saveLink.setColor('#64748b'));
-    saveLink.on('pointerdown', () => this.saveLoadModal.show(this));
+    const theme = ThemeManager.getInstance().getTheme();
 
-    const newGameLink = this.add.text(950, 20, '新遊戲', createTextStyle('11px', '#64748b'));
-    newGameLink.setInteractive({ useHandCursor: true });
-    newGameLink.on('pointerover', () => newGameLink.setColor('#cbd5e1'));
-    newGameLink.on('pointerout', () => newGameLink.setColor('#64748b'));
-    newGameLink.on('pointerdown', () => {
+    // Theme Toggle Link (開燈 in dark mode, 熄燈 in light mode)
+    const toggleText = theme.mode === 'dark' ? '開燈' : '熄燈';
+    this.themeToggleLink = this.add.text(800, 20, toggleText, createTextStyle('11px', theme.textMuted));
+    this.themeToggleLink.setInteractive({ useHandCursor: true });
+    this.themeToggleLink.on('pointerover', () => this.themeToggleLink.setColor(ThemeManager.getInstance().getTheme().textPrimary));
+    this.themeToggleLink.on('pointerout', () => this.themeToggleLink.setColor(ThemeManager.getInstance().getTheme().textMuted));
+    this.themeToggleLink.on('pointerdown', () => {
+      ThemeManager.getInstance().toggleTheme();
+    });
+
+    this.utilitySep1 = this.add.text(848, 20, '|', createTextStyle('11px', theme.tabSepColor));
+
+    this.saveLink = this.add.text(868, 20, '存檔管理', createTextStyle('11px', theme.textMuted));
+    this.saveLink.setInteractive({ useHandCursor: true });
+    this.saveLink.on('pointerover', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().textPrimary));
+    this.saveLink.on('pointerout', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().textMuted));
+    this.saveLink.on('pointerdown', () => this.saveLoadModal.show(this));
+
+    this.utilitySep2 = this.add.text(936, 20, '|', createTextStyle('11px', theme.tabSepColor));
+
+    this.newGameLink = this.add.text(956, 20, '新遊戲', createTextStyle('11px', theme.textMuted));
+    this.newGameLink.setInteractive({ useHandCursor: true });
+    this.newGameLink.on('pointerover', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().textPrimary));
+    this.newGameLink.on('pointerout', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().textMuted));
+    this.newGameLink.on('pointerdown', () => {
       if (window.confirm('確定要開啟新遊戲嗎？現有歷史存檔將完整保留，系統將為你建立全新開局。')) {
         const newGame = SaveManager.getInstance().startNewGame();
         this.gameState = newGame.state;
@@ -194,6 +232,25 @@ export class MainScene extends Phaser.Scene {
         EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！房間寒冷刺骨，火堆熄滅了。`, 'story');
       }
     });
+  }
+
+  private applyTheme(): void {
+    const theme = ThemeManager.getInstance().getTheme();
+    this.cameras.main.setBackgroundColor(theme.gameBgCss);
+    this.titleText.setColor(theme.textPrimary);
+    this.themeToggleLink.setText(theme.mode === 'dark' ? '開燈' : '熄燈');
+    this.themeToggleLink.setColor(theme.textMuted);
+    this.utilitySep1.setColor(theme.tabSepColor);
+    this.saveLink.setColor(theme.textMuted);
+    this.utilitySep2.setColor(theme.tabSepColor);
+    this.newGameLink.setColor(theme.textMuted);
+
+    this.inlineTabs.forEach((t) => {
+      if (t.sepObj) t.sepObj.setColor(theme.tabSepColor);
+    });
+    this.activeUnderline.setFillStyle(theme.underlineHex);
+
+    this.refreshUI();
   }
 
   private updateTabsLayout(): void {
@@ -228,14 +285,15 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateActiveTabHighlight(): void {
+    const theme = ThemeManager.getInstance().getTheme();
     const activeKey = this.gameState.activeTab;
     const activeItem = this.inlineTabs.find((t) => t.key === activeKey && t.textObj.visible);
 
     this.inlineTabs.forEach((t) => {
       if (t.key === activeKey) {
-        t.textObj.setColor('#ffffff');
+        t.textObj.setColor(theme.textPrimary);
       } else {
-        t.textObj.setColor('#94a3b8');
+        t.textObj.setColor(theme.textSecondary);
       }
     });
 
@@ -243,6 +301,7 @@ export class MainScene extends Phaser.Scene {
       this.activeUnderline.setVisible(true);
       this.activeUnderline.setPosition(activeItem.textObj.x, activeItem.textObj.y + activeItem.textObj.height + 2);
       this.activeUnderline.setSize(activeItem.textObj.width, 1);
+      this.activeUnderline.setFillStyle(theme.underlineHex);
     } else {
       this.activeUnderline.setVisible(false);
     }

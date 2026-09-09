@@ -2,12 +2,14 @@ import Phaser from 'phaser';
 import { EventBus, Events } from '../core/EventBus';
 import { GameData } from '../core/GameState';
 import { createTextStyle } from '../config/typography';
+import { ThemeManager } from '../config/ThemeManager';
 
 export class LogPanel extends Phaser.GameObjects.Container {
   private textEntries: Phaser.GameObjects.Text[] = [];
   private maxPoolSize: number = 35;
   private panelHeight: number;
   private logItems: Array<{ text: string; type: string }> = [];
+  private unsubTheme?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 300, height: number = 660) {
     super(scene, x, y);
@@ -34,6 +36,14 @@ export class LogPanel extends Phaser.GameObjects.Container {
     // Subscribe to log events
     EventBus.getInstance().on(Events.LOG_MESSAGE, (text: string, type?: string) => {
       this.addLogMessage(text, type);
+    });
+
+    this.unsubTheme = EventBus.getInstance().on(Events.THEME_CHANGED, () => {
+      this.renderLogs();
+    });
+
+    this.on('destroy', () => {
+      if (this.unsubTheme) this.unsubTheme();
     });
 
     scene.add.existing(this);
@@ -75,11 +85,12 @@ export class LogPanel extends Phaser.GameObjects.Container {
     const maxBottomY = this.panelHeight - 16;
     let currentY = startY;
 
+    const theme = ThemeManager.getInstance().getTheme();
     const colorMap: Record<string, string> = {
-      story: '#f6ad55', // warm gold
-      event: '#63b3ed', // bright blue
-      warn: '#fc8181',  // soft red
-      info: '#e2e8f0'   // crisp white/gray
+      story: theme.logStory,
+      event: theme.logEvent,
+      warn: theme.logWarn,
+      info: theme.logInfo
     };
 
     for (let i = 0; i < this.textEntries.length; i++) {
@@ -88,7 +99,7 @@ export class LogPanel extends Phaser.GameObjects.Container {
       if (i < this.logItems.length && currentY < maxBottomY) {
         const item = this.logItems[i];
         entryText.setText(item.text);
-        entryText.setColor(colorMap[item.type] || '#e2e8f0');
+        entryText.setColor(colorMap[item.type] || theme.logInfo);
         entryText.setY(currentY);
         entryText.setVisible(true);
 

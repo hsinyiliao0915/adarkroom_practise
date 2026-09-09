@@ -4,6 +4,7 @@ import { TextButton } from './TextButton';
 import { RoomSystem } from '../systems/RoomSystem';
 import { VillageSystem } from '../systems/VillageSystem';
 import { createTextStyle } from '../config/typography';
+import { ThemeManager } from '../config/ThemeManager';
 
 export class RoomView extends Phaser.GameObjects.Container {
   private statusText: Phaser.GameObjects.Text;
@@ -149,23 +150,28 @@ export class RoomView extends Phaser.GameObjects.Container {
       warm: '房間：暖和'
     };
 
+    const theme = ThemeManager.getInstance().getTheme();
     this.statusText.setText(fireMap[state.fireState] || '');
     this.warmthText.setText(warmthMap[state.warmthLevel] || '');
+    this.warmthText.setColor(theme.textSecondary);
+    this.buildingsTitle.setColor(theme.textSecondary);
 
     if (state.fireState === 'dead') {
-      this.statusText.setColor('#94a3b8');
+      this.statusText.setColor(theme.textMuted);
     } else if (state.fireState === 'roaring' || state.fireState === 'burning') {
-      this.statusText.setColor('#f6ad55');
+      this.statusText.setColor(theme.logStory);
     } else {
-      this.statusText.setColor('#cbd5e1');
+      this.statusText.setColor(theme.textPrimary);
     }
 
     if (state.strangerState === 'none') {
       this.strangerText.setText('');
     } else if (state.strangerState === 'sleeping') {
       this.strangerText.setText('一名陌生人癱倒在角落裡，昏迷不醒。');
+      this.strangerText.setColor(theme.textPrimary);
     } else if (state.strangerState === 'awake' || state.strangerState === 'helping') {
       this.strangerText.setText('陌生人站在火堆旁。她說她會建造東西。');
+      this.strangerText.setColor(theme.textPrimary);
     }
 
     // Fire button logic

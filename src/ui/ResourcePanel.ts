@@ -1,7 +1,9 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { GameData, Resources } from '../core/GameState';
 import { ResourceSystem } from '../systems/ResourceSystem';
 import { createTextStyle } from '../config/typography';
+import { ThemeManager } from '../config/ThemeManager';
+import { EventBus, Events } from '../core/EventBus';
 
 interface ResourceItemDisplay {
   key: keyof Resources;
@@ -15,15 +17,18 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
   private items: ResourceItemDisplay[] = [];
   private discoveredKeys: Set<keyof Resources> = new Set();
   private panelWidth: number;
+  private unsubTheme?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 210, _height: number = 660) {
     super(scene, x, y);
     this.panelWidth = width;
 
+    const theme = ThemeManager.getInstance().getTheme();
+
     // Compact stores outline (1px line, auto-sizes to fit items)
     this.outlineRect = scene.add.rectangle(0, 10, width - 10, 40);
-    this.outlineRect.setStrokeStyle(1, 0xffffff, 0.4);
-    this.outlineRect.setFillStyle(0x000000, 0);
+    this.outlineRect.setStrokeStyle(1, theme.storesOutlineHex, theme.storesOutlineAlpha);
+    this.outlineRect.setFillStyle(theme.gameBgHex, 0);
     this.outlineRect.setOrigin(0);
 
     // Title label overlapping the top border (like original fieldset)
@@ -31,9 +36,9 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
       12,
       2,
       ' 庫存 ',
-      createTextStyle('12px', '#cbd5e1')
+      createTextStyle('12px', theme.textPrimary)
     );
-    this.titleText.setBackgroundColor('#0d0e12');
+    this.titleText.setBackgroundColor(theme.storesTitleBg);
 
     this.add([this.outlineRect, this.titleText]);
 
@@ -72,7 +77,25 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
     // Initially completely hidden until stores are unlocked
     this.setVisible(false);
 
+    this.unsubTheme = EventBus.getInstance().on(Events.THEME_CHANGED, () => {
+      this.applyTheme();
+    });
+
+    this.on('destroy', () => {
+      if (this.unsubTheme) this.unsubTheme();
+    });
+
     scene.add.existing(this);
+  }
+
+  public applyTheme(): void {
+    const theme = ThemeManager.getInstance().getTheme();
+    this.outlineRect.setStrokeStyle(1, theme.storesOutlineHex, theme.storesOutlineAlpha);
+    this.titleText.setColor(theme.textPrimary);
+    this.titleText.setBackgroundColor(theme.storesTitleBg);
+    this.items.forEach((item) => {
+      item.unitText.setColor(theme.textPrimary);
+    });
   }
 
   public resetDiscovered(state?: GameData): void {

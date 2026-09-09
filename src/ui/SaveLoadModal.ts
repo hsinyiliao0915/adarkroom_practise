@@ -5,6 +5,7 @@ import { RoomSystem } from '../systems/RoomSystem';
 import { EventBus, Events } from '../core/EventBus';
 import { TextButton } from './TextButton';
 import { createTextStyle } from '../config/typography';
+import { ThemeManager } from '../config/ThemeManager';
 
 export class SaveLoadModal extends Phaser.GameObjects.Container {
   private bgBackdrop: Phaser.GameObjects.Rectangle;
@@ -13,6 +14,8 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
 
   private titleText: Phaser.GameObjects.Text;
   private currentSaveText: Phaser.GameObjects.Text;
+  private listLabel: Phaser.GameObjects.Text;
+  private divider: Phaser.GameObjects.Rectangle;
 
   private quickSaveBtn: TextButton;
   private createNewSaveBtn: TextButton;
@@ -20,20 +23,23 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
   private closeBtn: TextButton;
 
   private slotContainers: Phaser.GameObjects.Container[] = [];
+  private unsubTheme?: () => void;
 
   constructor(scene: Phaser.Scene, width: number = 620, height: number = 540) {
     const cameraWidth = scene.cameras.main.width;
     const cameraHeight = scene.cameras.main.height;
     super(scene, cameraWidth / 2, cameraHeight / 2);
 
+    const theme = ThemeManager.getInstance().getTheme();
+
     // 背景遮罩
-    this.bgBackdrop = scene.add.rectangle(0, 0, cameraWidth, cameraHeight, 0x000000, 0.75);
+    this.bgBackdrop = scene.add.rectangle(0, 0, cameraWidth, cameraHeight, theme.modalBackdropHex, theme.modalBackdropAlpha);
     this.bgBackdrop.setInteractive();
 
     // 彈窗背景與邊框
-    this.modalBg = scene.add.rectangle(0, 0, width, height, 0x11131a, 0.98);
+    this.modalBg = scene.add.rectangle(0, 0, width, height, theme.modalBgHex, 0.98);
     this.modalBorder = scene.add.rectangle(0, 0, width, height);
-    this.modalBorder.setStrokeStyle(2, 0x38bdf8);
+    this.modalBorder.setStrokeStyle(1, theme.modalBorderHex);
     this.modalBorder.setFillStyle(0x000000, 0);
 
     // 標題
@@ -41,7 +47,7 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
       0,
       -height / 2 + 30,
       '── 冒險存檔與進度管理 ──',
-      createTextStyle('16px', '#38bdf8', false, { align: 'center' })
+      createTextStyle('15px', theme.textPrimary, false, { align: 'center' })
     );
     this.titleText.setOrigin(0.5);
 
@@ -89,13 +95,13 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
       onClick: () => this.hide()
     });
 
-    const divider = scene.add.rectangle(0, -height / 2 + 135, width - 40, 1, 0x334155);
+    this.divider = scene.add.rectangle(0, -height / 2 + 135, width - 40, 1, theme.modalDividerHex);
 
-    const listLabel = scene.add.text(
+    this.listLabel = scene.add.text(
       -width / 2 + 30,
       -height / 2 + 148,
       '【 本機歷史存檔列表 】（最多保留 10 份）',
-      createTextStyle('12px', '#cbd5e1', true)
+      createTextStyle('12px', theme.textPrimary, true)
     );
 
     this.add([
@@ -108,9 +114,17 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
       this.createNewSaveBtn,
       this.newGameBtn,
       this.closeBtn,
-      divider,
-      listLabel
+      this.divider,
+      this.listLabel
     ]);
+
+    this.unsubTheme = EventBus.getInstance().on(Events.THEME_CHANGED, () => {
+      if (this.visible) this.refreshSlots(scene);
+    });
+
+    this.on('destroy', () => {
+      if (this.unsubTheme) this.unsubTheme();
+    });
 
     this.setVisible(false);
     this.setDepth(200);
@@ -133,6 +147,14 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     }
     this.slotContainers = [];
 
+    const theme = ThemeManager.getInstance().getTheme();
+    this.modalBg.setFillStyle(theme.modalBgHex, 0.98);
+    this.modalBorder.setStrokeStyle(1, theme.modalBorderHex);
+    this.bgBackdrop.setFillStyle(theme.modalBackdropHex, theme.modalBackdropAlpha);
+    this.titleText.setColor(theme.textPrimary);
+    this.listLabel.setColor(theme.textPrimary);
+    this.divider.setFillStyle(theme.modalDividerHex);
+
     const activeId = SaveManager.getInstance().getActiveSaveId();
     const saves = SaveManager.getInstance().listSaves();
 
@@ -142,6 +164,7 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     } else {
       this.currentSaveText.setText(`目前遊玩進度：【預設存檔】`);
     }
+    this.currentSaveText.setColor(theme.textSecondary);
 
     const startY = -100;
     const itemHeight = 62;
@@ -151,16 +174,16 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
       const rowContainer = scene.add.container(0, rowY);
 
       const isCurrent = meta.id === activeId;
-      const rowBg = scene.add.rectangle(0, 0, 560, 54, isCurrent ? 0x1e293b : 0x151923, 0.9);
+      const rowBg = scene.add.rectangle(0, 0, 560, 54, theme.modalSlotBgHex, isCurrent ? 0.95 : 0.6);
       const rowBorder = scene.add.rectangle(0, 0, 560, 54);
-      rowBorder.setStrokeStyle(1, isCurrent ? 0x38bdf8 : 0x272c38);
+      rowBorder.setStrokeStyle(1, isCurrent ? theme.underlineHex : theme.modalBorderHex);
       rowBorder.setFillStyle(0, 0);
 
       const nameText = scene.add.text(
         -265,
         -18,
         `${isCurrent ? '▶ ' : ''}${meta.name}`,
-        createTextStyle('13px', isCurrent ? '#38bdf8' : '#f8fafc', true)
+        createTextStyle('13px', theme.textPrimary, true)
       );
 
       const d = new Date(meta.updatedAt);
@@ -169,7 +192,7 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
         -265,
         4,
         `${meta.summary || ''}  |  更新時間: ${timeStr}`,
-        createTextStyle('11px', '#94a3b8')
+        createTextStyle('11px', theme.textSecondary)
       );
 
       // 載入按鈕

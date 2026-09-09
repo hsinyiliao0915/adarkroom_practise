@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { createTextStyle } from '../config/typography';
+import { ThemeManager } from '../config/ThemeManager';
+import { EventBus, Events } from '../core/EventBus';
 
 export interface TextButtonConfig {
   text: string;
@@ -23,6 +25,7 @@ export class TextButton extends Phaser.GameObjects.Container {
   private onClickCallback?: () => void;
   private btnWidth: number;
   private btnHeight: number;
+  private unsubTheme?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number, config: TextButtonConfig) {
     super(scene, x, y);
@@ -32,18 +35,20 @@ export class TextButton extends Phaser.GameObjects.Container {
     this.cooldownDuration = config.cooldownMs || 0;
     this.onClickCallback = config.onClick;
 
+    const theme = ThemeManager.getInstance().getTheme();
+
     // Background (transparent by default)
-    this.bgRect = scene.add.rectangle(0, 0, this.btnWidth, this.btnHeight, 0x000000, 0.01);
+    this.bgRect = scene.add.rectangle(0, 0, this.btnWidth, this.btnHeight, theme.btnBgNormalHex, theme.btnBgNormalAlpha);
     this.bgRect.setOrigin(0.5);
 
-    // Cooldown overlay (slides horizontally from left with soft white overlay)
-    this.cooldownRect = scene.add.rectangle(-this.btnWidth / 2, 0, 0, this.btnHeight, 0xffffff, 0.25);
+    // Cooldown overlay
+    this.cooldownRect = scene.add.rectangle(-this.btnWidth / 2, 0, 0, this.btnHeight, theme.btnCooldownOverlayHex, theme.btnCooldownOverlayAlpha);
     this.cooldownRect.setOrigin(0, 0.5);
 
     // Border (1px crisp line)
     this.borderRect = scene.add.rectangle(0, 0, this.btnWidth, this.btnHeight);
-    this.borderRect.setStrokeStyle(1, 0xffffff, 0.85);
-    this.borderRect.setFillStyle(0x000000, 0);
+    this.borderRect.setStrokeStyle(1, theme.btnBorderHex, theme.btnBorderAlpha);
+    this.borderRect.setFillStyle(theme.btnBgNormalHex, 0);
     this.borderRect.setOrigin(0.5);
 
     // Text label with clean typography
@@ -51,7 +56,7 @@ export class TextButton extends Phaser.GameObjects.Container {
       0,
       0,
       config.text,
-      createTextStyle(config.fontSize || '13px', '#ffffff', false, { align: 'center' })
+      createTextStyle(config.fontSize || '13px', theme.btnText, false, { align: 'center' })
     );
     this.label.setOrigin(0.5);
 
@@ -63,22 +68,32 @@ export class TextButton extends Phaser.GameObjects.Container {
     this.bgRect.on('pointerout', this.onPointerOut, this);
     this.bgRect.on('pointerdown', this.onPointerDown, this);
 
+    this.unsubTheme = EventBus.getInstance().on(Events.THEME_CHANGED, () => {
+      this.updateVisualState();
+    });
+
+    this.on('destroy', () => {
+      if (this.unsubTheme) this.unsubTheme();
+    });
+
     scene.add.existing(this);
   }
 
   private onPointerOver(): void {
     if (!this.isButtonEnabled || this.isCooldown) return;
+    const theme = ThemeManager.getInstance().getTheme();
     // Invert colors on hover (original A Dark Room style)
-    this.bgRect.setFillStyle(0xffffff, 0.95);
-    this.borderRect.setStrokeStyle(1, 0xffffff);
-    this.label.setColor('#0a0a0a');
+    this.bgRect.setFillStyle(theme.btnBgHoverHex, theme.btnBgHoverAlpha);
+    this.borderRect.setStrokeStyle(1, theme.btnBorderHex);
+    this.label.setColor(theme.btnTextHover);
   }
 
   private onPointerOut(): void {
     if (!this.isButtonEnabled || this.isCooldown) return;
-    this.bgRect.setFillStyle(0x000000, 0.01);
-    this.borderRect.setStrokeStyle(1, 0xffffff, 0.85);
-    this.label.setColor('#ffffff');
+    const theme = ThemeManager.getInstance().getTheme();
+    this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
+    this.borderRect.setStrokeStyle(1, theme.btnBorderHex, theme.btnBorderAlpha);
+    this.label.setColor(theme.btnText);
   }
 
   private onPointerDown(): void {
@@ -128,21 +143,24 @@ export class TextButton extends Phaser.GameObjects.Container {
     }
   }
 
-  private updateVisualState(): void {
+  public updateVisualState(): void {
+    const theme = ThemeManager.getInstance().getTheme();
+    this.cooldownRect.setFillStyle(theme.btnCooldownOverlayHex, theme.btnCooldownOverlayAlpha);
+
     if (!this.isButtonEnabled) {
-      this.bgRect.setFillStyle(0x000000, 0.01);
-      this.borderRect.setStrokeStyle(1, 0x475569, 0.4);
-      this.label.setColor('#556070');
+      this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
+      this.borderRect.setStrokeStyle(1, theme.btnDisabledBorderHex, 0.4);
+      this.label.setColor(theme.btnDisabledText);
       this.bgRect.disableInteractive();
     } else if (this.isCooldown) {
-      this.bgRect.setFillStyle(0x000000, 0.01);
-      this.borderRect.setStrokeStyle(1, 0x64748b, 0.6);
-      this.label.setColor('#94a3b8');
+      this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
+      this.borderRect.setStrokeStyle(1, theme.btnDisabledBorderHex, 0.6);
+      this.label.setColor(theme.textMuted);
       this.bgRect.disableInteractive();
     } else {
-      this.bgRect.setFillStyle(0x000000, 0.01);
-      this.borderRect.setStrokeStyle(1, 0xffffff, 0.85);
-      this.label.setColor('#ffffff');
+      this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
+      this.borderRect.setStrokeStyle(1, theme.btnBorderHex, theme.btnBorderAlpha);
+      this.label.setColor(theme.btnText);
       this.bgRect.setInteractive({ useHandCursor: true });
     }
   }
