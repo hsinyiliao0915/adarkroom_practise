@@ -1,5 +1,6 @@
 {
   "name": "adarkroom-phaser",
+  "description": "A Dark Room recreated in Phaser 3 & TypeScript (For practice and learning purposes only / 僅供個人學習與技術練習使用)",
   "private": true,
   "version": "1.0.0",
   "type": "module",
