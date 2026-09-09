@@ -42,8 +42,8 @@ export const BUILDING_RECIPES: BuildingRecipe[] = [
   },
   {
     id: 'huts',
-    name: '工棚 (Hut)',
-    description: '為無家可歸的流浪者提供遮風避雨之所。每座工棚可容納 4 名村民。',
+    name: '棚屋 (Hut)',
+    description: '為無家可歸的流浪者提供遮風避雨之所。每座棚屋可容納 4 名村民。',
     cost: (current) => ({
       wood: 100 + Math.floor(Math.pow(current, 1.4) * 50)
     }),
@@ -139,7 +139,7 @@ export const WORKER_JOBS: WorkerJob[] = [
   },
   {
     id: 'curedMeatMakers',
-    name: '製肉工 (Smoker)',
+    name: '燻肉工 (Smoker)',
     description: '消耗木材將生肉燻製為肉乾。',
     production: { curedMeat: 2 },
     consumption: { meat: 4, wood: 5 },
@@ -192,8 +192,8 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
   },
   {
     id: 'cart',
-    name: '推車 (Cart)',
-    description: '手推推車，大幅提升手動伐木獲得的木材量 (每次採集 50 木材)。',
+    name: '貨車 (Cart)',
+    description: '簡陋貨車，大幅提升手動伐木獲得的木材量 (每次採集 50 木材)。',
     cost: { wood: 30 },
     maxCount: 1,
     isEquipment: true

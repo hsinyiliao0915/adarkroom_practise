@@ -48,7 +48,7 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     this.currentSaveText = scene.add.text(
       0,
       -height / 2 + 60,
-      '當前活躍存檔：載入中...',
+      '目前使用中的存檔：載入中...',
       createTextStyle('12px', '#94a3b8', false, { align: 'center' })
     );
     this.currentSaveText.setOrigin(0.5);
@@ -137,9 +137,9 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
 
     const activeMeta = saves.find((s) => s.id === activeId);
     if (activeMeta) {
-      this.currentSaveText.setText(`當前活躍進度：【${activeMeta.name}】（第 ${activeMeta.days} 天）`);
+      this.currentSaveText.setText(`目前遊玩進度：【${activeMeta.name}】（第 ${activeMeta.days} 天）`);
     } else {
-      this.currentSaveText.setText(`當前活躍進度：【預設存檔】`);
+      this.currentSaveText.setText(`目前遊玩進度：【預設存檔】`);
     }
 
     const startY = -100;
