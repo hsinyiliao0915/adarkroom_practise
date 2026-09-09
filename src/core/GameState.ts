@@ -1,7 +1,7 @@
 export type FireState = 'dead' | 'smoldering' | 'flickering' | 'burning' | 'roaring';
 export type WarmthLevel = 'freezing' | 'cold' | 'mild' | 'warm';
 export type StrangerState = 'none' | 'sleeping' | 'awake' | 'helping';
-export type ActiveTab = 'room' | 'village' | 'craft' | 'map' | 'ship';
+export type ActiveTab = 'room' | 'forest' | 'village' | 'craft' | 'map' | 'ship';
 
 export interface StarshipState {
   unlocked: boolean;
@@ -112,6 +112,7 @@ export interface GameData {
   // Tabs & Features unlocked
   unlockedTabs: {
     room: boolean;
+    forest: boolean;
     village: boolean;
     craft: boolean;
     map: boolean;
@@ -169,6 +170,7 @@ export const INITIAL_GAME_DATA: GameData = {
 
   unlockedTabs: {
     room: true,
+    forest: false,
     village: false,
     craft: false,
     map: false,

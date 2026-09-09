@@ -62,7 +62,9 @@ export class RoomSystem {
 
     if (!state.unlockedForest) {
       state.unlockedForest = true;
+      state.unlockedTabs.forest = true;
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '庫存的乾柴不多了。必須踏入外面的森林採集木材。', 'story');
+      EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'forest');
     }
 
     EventBus.getInstance().emit(Events.LOG_MESSAGE, '你向壁爐中添了一根木柴。火光跳躍著。', 'info');
@@ -90,7 +92,9 @@ export class RoomSystem {
 
     if (state.fireState !== 'dead' && state.resources.wood <= 1 && !state.unlockedForest) {
       state.unlockedForest = true;
+      state.unlockedTabs.forest = true;
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '庫存的乾柴快要燒完了。必須踏入外面的森林採集木材。', 'story');
+      EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'forest');
     }
 
     // Stranger arrival trigger

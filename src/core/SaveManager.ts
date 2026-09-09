@@ -93,6 +93,7 @@ export class SaveManager {
     // 5. 分頁解鎖狀態
     if (raw.unlockedTabs && typeof raw.unlockedTabs === 'object') {
       base.unlockedTabs.room = true;
+      base.unlockedTabs.forest = Boolean(raw.unlockedTabs.forest || raw.unlockedForest);
       base.unlockedTabs.village = Boolean(raw.unlockedTabs.village);
       base.unlockedTabs.craft = Boolean(raw.unlockedTabs.craft);
       base.unlockedTabs.map = Boolean(raw.unlockedTabs.map);

@@ -1,8 +1,8 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { GameData } from '../core/GameState';
 import { TextButton } from './TextButton';
 import { RoomSystem } from '../systems/RoomSystem';
-import { ResourceSystem } from '../systems/ResourceSystem';
+import { VillageSystem } from '../systems/VillageSystem';
 import { createTextStyle } from '../config/typography';
 
 export class RoomView extends Phaser.GameObjects.Container {
@@ -12,9 +12,12 @@ export class RoomView extends Phaser.GameObjects.Container {
 
   private lightFireBtn: TextButton;
   private stokeFireBtn: TextButton;
-  private gatherWoodBtn: TextButton;
-  private checkTrapsBtn: TextButton;
-  private baitTrapsBtn: TextButton;
+
+  // Builder Construction Section
+  private buildingsTitle: Phaser.GameObjects.Text;
+  private trapBtn: TextButton;
+  private cartBtn: TextButton;
+  private hutBtn: TextButton;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 490) {
     super(scene, x, y);
@@ -29,14 +32,14 @@ export class RoomView extends Phaser.GameObjects.Container {
 
     this.warmthText = scene.add.text(
       20,
-      50,
+      48,
       '房間：刺骨寒冷',
       createTextStyle('14px', '#94a3b8')
     );
 
     this.strangerText = scene.add.text(
       20,
-      80,
+      76,
       '',
       createTextStyle('13px', '#e2e8f0', false, {
         wordWrap: { width: width - 40, useAdvancedWrap: true }
@@ -44,12 +47,10 @@ export class RoomView extends Phaser.GameObjects.Container {
     );
 
     // Action Buttons
-    const btnY = 150;
-
-    // 1. Light Fire
-    this.lightFireBtn = new TextButton(scene, 130, btnY, {
+    // 1. Light Fire (點燃壁爐)
+    this.lightFireBtn = new TextButton(scene, 100, 130, {
       text: '點燃壁爐',
-      width: 220,
+      width: 180,
       height: 38,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
@@ -59,10 +60,10 @@ export class RoomView extends Phaser.GameObjects.Container {
       }
     });
 
-    // 2. Stoke Fire
-    this.stokeFireBtn = new TextButton(scene, 130, btnY + 50, {
+    // 2. Stoke Fire (添柴)
+    this.stokeFireBtn = new TextButton(scene, 100, 130, {
       text: '添柴 (1 木材)',
-      width: 220,
+      width: 180,
       height: 38,
       cooldownMs: 2500,
       onClick: () => {
@@ -73,45 +74,46 @@ export class RoomView extends Phaser.GameObjects.Container {
       }
     });
 
-    // 3. Gather Wood
-    this.gatherWoodBtn = new TextButton(scene, 130, btnY + 110, {
-      text: '進入森林採集木材',
-      width: 220,
-      height: 38,
-      cooldownMs: 3500,
+    // 3. Buildings Section
+    this.buildingsTitle = scene.add.text(
+      20,
+      190,
+      '建築物:',
+      createTextStyle('13px', '#94a3b8')
+    );
+
+    this.trapBtn = new TextButton(scene, 100, 225, {
+      text: '陷阱 (10 木材)',
+      width: 180,
+      height: 36,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
-          ResourceSystem.getInstance().gatherWood(state);
+          VillageSystem.getInstance().build(state, 'traps');
         }
       }
     });
 
-    // 4. Check Traps
-    this.checkTrapsBtn = new TextButton(scene, 130, btnY + 170, {
-      text: '巡視森林陷阱',
-      width: 220,
-      height: 38,
-      cooldownMs: 8000,
+    this.cartBtn = new TextButton(scene, 100, 270, {
+      text: '貨車 (30 木材)',
+      width: 180,
+      height: 36,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
-          ResourceSystem.getInstance().checkTraps(state);
+          VillageSystem.getInstance().build(state, 'cart' as any);
         }
       }
     });
 
-    // 5. Bait Traps
-    this.baitTrapsBtn = new TextButton(scene, 130, btnY + 225, {
-      text: '為陷阱投放誘餌 (1 生肉)',
-      width: 220,
-      height: 34,
-      fontSize: '12px',
-      cooldownMs: 1000,
+    this.hutBtn = new TextButton(scene, 100, 315, {
+      text: '棚屋 (100 木材)',
+      width: 180,
+      height: 36,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
-          ResourceSystem.getInstance().baitTraps(state, 1);
+          VillageSystem.getInstance().build(state, 'huts');
         }
       }
     });
@@ -122,9 +124,10 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.strangerText,
       this.lightFireBtn,
       this.stokeFireBtn,
-      this.gatherWoodBtn,
-      this.checkTrapsBtn,
-      this.baitTrapsBtn
+      this.buildingsTitle,
+      this.trapBtn,
+      this.cartBtn,
+      this.hutBtn
     ]);
 
     scene.add.existing(this);
@@ -165,48 +168,60 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.strangerText.setText('建造者在房間一角專注地繪製著聚落藍圖。');
     }
 
+    // Fire button logic
     if (state.fireState === 'dead') {
       this.lightFireBtn.setVisible(true);
       this.lightFireBtn.setEnabled(true);
       this.stokeFireBtn.setVisible(false);
-      this.gatherWoodBtn.setVisible(false);
     } else {
       this.lightFireBtn.setVisible(false);
       this.stokeFireBtn.setVisible(true);
       this.stokeFireBtn.setEnabled(state.resources.wood >= 1);
-      this.gatherWoodBtn.setVisible(state.unlockedForest);
     }
 
-    const hasTraps = state.buildings.traps > 0;
-    this.checkTrapsBtn.setVisible(hasTraps);
-    this.baitTrapsBtn.setVisible(hasTraps);
-    if (hasTraps) {
-      const baitCount = state.trapBaitMeat || 0;
-      this.baitTrapsBtn.setText(`投放誘餌 (現有: ${baitCount})`);
-      this.baitTrapsBtn.setEnabled(state.resources.meat >= 1);
-    }
+    // Builder buildings logic
+    const hasBuilder = state.strangerState === 'awake' || state.strangerState === 'helping';
+    this.buildingsTitle.setVisible(hasBuilder);
+    this.trapBtn.setVisible(hasBuilder);
+    this.cartBtn.setVisible(hasBuilder);
+    this.hutBtn.setVisible(hasBuilder);
 
-    // Dynamically stack visible action buttons without gaps
-    let currentY = 140;
-    const btnList = [
-      this.lightFireBtn,
-      this.stokeFireBtn,
-      this.gatherWoodBtn,
-      this.checkTrapsBtn,
-      this.baitTrapsBtn
-    ];
-    for (const btn of btnList) {
-      if (btn.visible) {
-        btn.setY(currentY);
-        currentY += 48;
+    if (hasBuilder) {
+      // Traps
+      const trapCount = state.buildings.traps || 0;
+      if (trapCount >= 10) {
+        this.trapBtn.setText('陷阱 (已達上限 10)');
+        this.trapBtn.setEnabled(false);
+      } else {
+        const trapCost = 10 + trapCount * 10;
+        this.trapBtn.setText(`陷阱 (${trapCost} 木材) [${trapCount}/10]`);
+        this.trapBtn.setEnabled(state.resources.wood >= trapCost);
+      }
+
+      // Cart
+      const cartCount = state.resources.cart || 0;
+      if (cartCount >= 1) {
+        this.cartBtn.setText('貨車 (已建造)');
+        this.cartBtn.setEnabled(false);
+      } else {
+        this.cartBtn.setText('貨車 (30 木材)');
+        this.cartBtn.setEnabled(state.resources.wood >= 30);
+      }
+
+      // Huts
+      const hutCount = state.buildings.huts || 0;
+      if (hutCount >= 20) {
+        this.hutBtn.setText('棚屋 (已達上限 20)');
+        this.hutBtn.setEnabled(false);
+      } else {
+        const hutCost = 100 + hutCount * 50;
+        this.hutBtn.setText(`棚屋 (${hutCost} 木材) [${hutCount}]`);
+        this.hutBtn.setEnabled(state.resources.wood >= hutCost);
       }
     }
   }
 
   public update(delta: number): void {
     this.stokeFireBtn.update(delta);
-    this.gatherWoodBtn.update(delta);
-    this.checkTrapsBtn.update(delta);
-    this.baitTrapsBtn.update(delta);
   }
 }
