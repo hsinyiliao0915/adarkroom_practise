@@ -1,5 +1,5 @@
 import { GameData, Buildings, Workers, Resources } from '../core/GameState';
-import { BUILDING_RECIPES } from '../data/recipes';
+import { BUILDING_RECIPES, WORKER_JOBS } from '../data/recipes';
 import { EventBus, Events } from '../core/EventBus';
 
 export class VillageSystem {
@@ -33,6 +33,12 @@ export class VillageSystem {
     const currentCount = state.buildings[buildingId] || 0;
     if (recipe.maxCount && currentCount >= recipe.maxCount) {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '已達到該建築物的建造上限。', 'warn');
+      return false;
+    }
+
+    // Check unlock requirement guard
+    if (recipe.unlockRequirement && !recipe.unlockRequirement(state.buildings, state.resources)) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '尚未達成該建築的建造前置條件。', 'warn');
       return false;
     }
 
@@ -74,6 +80,14 @@ export class VillageSystem {
     const free = this.getFreeVillagers(state);
 
     if (delta > 0) {
+      const jobDef = WORKER_JOBS.find((j) => j.id === job);
+      if (jobDef?.requiredBuilding) {
+        const hasBuilding = (state.buildings[jobDef.requiredBuilding] || 0) > 0;
+        if (!hasBuilding) {
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, `需要建造相應設施才能指派【${jobDef.name}】。`, 'warn');
+          return false;
+        }
+      }
       if (free < delta) return false;
       state.workers[job] = current + delta;
     } else if (delta < 0) {

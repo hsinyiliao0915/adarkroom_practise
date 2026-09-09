@@ -24,6 +24,17 @@ export class CraftSystem {
       return false;
     }
 
+    // Check unlock requirement guard
+    if (recipe.unlockRequirement && !recipe.unlockRequirement(state.resources, state.buildings)) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '尚未達成該物品的解鎖條件。', 'warn');
+      return false;
+    }
+
+    if (recipe.requiresWorkshop && (!state.buildings.workshop || state.buildings.workshop < 1)) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '需要建造工作坊才能製作此物品。', 'warn');
+      return false;
+    }
+
     // Check afford
     for (const [resKey, amount] of Object.entries(recipe.cost)) {
       if ((state.resources[resKey as keyof Resources] || 0) < amount) {

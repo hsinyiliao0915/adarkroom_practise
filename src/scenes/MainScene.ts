@@ -10,6 +10,7 @@ import { VillageView } from '../ui/VillageView';
 import { CraftView } from '../ui/CraftView';
 import { MapView } from '../ui/MapView';
 import { TextButton } from '../ui/TextButton';
+import { SaveLoadModal } from '../ui/SaveLoadModal';
 import { createTextStyle } from '../config/typography';
 
 export class MainScene extends Phaser.Scene {
@@ -22,6 +23,7 @@ export class MainScene extends Phaser.Scene {
   private villageView!: VillageView;
   private craftView!: CraftView;
   private mapView!: MapView;
+  private saveLoadModal!: SaveLoadModal;
 
   private tabButtons: Map<ActiveTab, TextButton> = new Map();
 
@@ -63,10 +65,13 @@ export class MainScene extends Phaser.Scene {
     // Right: Resource Inventory Panel
     this.resourcePanel = new ResourcePanel(this, 802, 55, 230, 645);
 
-    // 4. Switch to current tab
+    // 4. Create Save/Load Modal
+    this.saveLoadModal = new SaveLoadModal(this);
+
+    // 5. Switch to current tab
     this.switchTab(this.gameState.activeTab);
 
-    // 5. Subscribe to EventBus
+    // 6. Subscribe to EventBus
     EventBus.getInstance().on(Events.STATE_CHANGED, () => {
       this.refreshUI();
     });
@@ -77,7 +82,7 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    // 6. Start Tick Engine & AutoSave
+    // 7. Start Tick Engine & AutoSave
     TickEngine.getInstance().start(() => this.gameState, 500);
     SaveManager.getInstance().startAutoSave(() => this.gameState, 10000);
 
@@ -121,26 +126,28 @@ export class MainScene extends Phaser.Scene {
     });
 
     // Save & Reset Buttons on top right
-    new TextButton(this, 915, 25, {
-      text: '存檔',
-      width: 55,
+    new TextButton(this, 905, 25, {
+      text: '存檔管理',
+      width: 70,
       height: 26,
       fontSize: '11px',
       onClick: () => {
-        SaveManager.getInstance().save(this.gameState);
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '遊戲進度已手動保存至瀏覽器。', 'info');
+        this.saveLoadModal.show(this);
       }
     });
 
     new TextButton(this, 980, 25, {
-      text: '重置',
+      text: '新遊戲',
       width: 55,
       height: 26,
       fontSize: '11px',
       onClick: () => {
-        if (window.confirm('確定要清除所有進度並重新開始嗎？')) {
-          SaveManager.getInstance().clear();
-          window.location.reload();
+        if (window.confirm('確定要開啟新遊戲嗎？現有歷史存檔將完整保留，系統將為你建立全新開局。')) {
+          const newGame = SaveManager.getInstance().startNewGame();
+          this.gameState = newGame.state;
+          this.switchTab('room');
+          this.refreshUI();
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！火堆已熄滅，房間很冷。`, 'story');
         }
       }
     });

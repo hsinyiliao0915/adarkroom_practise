@@ -132,6 +132,16 @@ export interface GameData {
   logs: Array<{ text: string; time: number; type?: 'info' | 'warn' | 'event' | 'story' }>;
 }
 
+export interface SaveMetadata {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  days: number;
+  population: number;
+  summary: string;
+}
+
 export const INITIAL_GAME_DATA: GameData = {
   version: 1,
   gameTime: 0,

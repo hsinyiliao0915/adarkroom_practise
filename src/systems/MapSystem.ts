@@ -119,8 +119,12 @@ export class MapSystem {
 
     // Pick best weapon
     let weapon: ExpeditionState['weapon'] = 'fists';
-    if (state.resources.rifle > 0 && state.resources.bullets > 0) weapon = 'rifle';
-    else if (state.resources.steelSword > 0) weapon = 'steelSword';
+    let bulletsTaken = 0;
+    if (state.resources.rifle > 0 && state.resources.bullets > 0) {
+      weapon = 'rifle';
+      bulletsTaken = state.resources.bullets;
+      state.resources.bullets = 0;
+    } else if (state.resources.steelSword > 0) weapon = 'steelSword';
     else if (state.resources.ironSword > 0) weapon = 'ironSword';
     else if (state.resources.boneSpear > 0) weapon = 'boneSpear';
 
@@ -135,7 +139,7 @@ export class MapSystem {
       curedMeat: curedMeatTaken,
       torches: torchesTaken,
       weapon,
-      bullets: state.resources.bullets,
+      bullets: bulletsTaken,
       carriedLoot: {},
       inCombat: false,
       enemy: null,
@@ -349,14 +353,21 @@ export class MapSystem {
       lootDesc.push(`${k}: +${amount}`);
     }
 
-    // Return remaining cured meat and torches
+    // Return remaining cured meat, torches, and bullets
     state.resources.curedMeat += state.expedition.curedMeat;
     state.resources.torches += state.expedition.torches;
+    state.resources.bullets = (state.resources.bullets || 0) + (state.expedition.bullets || 0);
 
     state.expedition.active = false;
+    state.expedition.x = SPAWN_POINT.x;
+    state.expedition.y = SPAWN_POINT.y;
+    state.expedition.curedMeat = 0;
+    state.expedition.torches = 0;
+    state.expedition.bullets = 0;
     state.expedition.inCombat = false;
     state.expedition.enemy = null;
     state.expedition.carriedLoot = {};
+    state.expedition.combatLog = [];
 
     EventBus.getInstance().emit(Events.LOG_MESSAGE, `你平安返回了聚落！卸下了所有探索獲得的物資。`, 'story');
     EventBus.getInstance().emit(Events.STATE_CHANGED);
@@ -364,9 +375,17 @@ export class MapSystem {
 
   public dieInWilderness(state: GameData): void {
     state.expedition.active = false;
+    state.expedition.x = SPAWN_POINT.x;
+    state.expedition.y = SPAWN_POINT.y;
+    state.expedition.hp = 0;
+    state.expedition.water = 0;
+    state.expedition.curedMeat = 0;
+    state.expedition.torches = 0;
+    state.expedition.bullets = 0;
     state.expedition.inCombat = false;
     state.expedition.enemy = null;
     state.expedition.carriedLoot = {};
+    state.expedition.combatLog = [];
 
     EventBus.getInstance().emit(Events.LOG_MESSAGE, '你在殘酷的荒野中倒下了...背包中的所有戰利品遺失，你被村民救回了小黑屋。', 'warn');
     EventBus.getInstance().emit(Events.STATE_CHANGED);
