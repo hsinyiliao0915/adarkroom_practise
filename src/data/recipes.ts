@@ -1,0 +1,260 @@
+import { Resources, Buildings, Workers } from '../core/GameState';
+
+export interface BuildingRecipe {
+  id: keyof Buildings;
+  name: string;
+  description: string;
+  cost: (currentCount: number) => Partial<Resources>;
+  maxCount?: number;
+  unlockRequirement?: (buildings: Buildings, resources: Resources) => boolean;
+}
+
+export interface WorkerJob {
+  id: keyof Workers;
+  name: string;
+  description: string;
+  production: Partial<Record<keyof Resources, number>>; // Per 10 seconds per worker
+  consumption: Partial<Record<keyof Resources, number>>; // Per 10 seconds per worker
+  requiredBuilding?: keyof Buildings;
+}
+
+export interface CraftRecipe {
+  id: keyof Resources;
+  name: string;
+  description: string;
+  cost: Partial<Resources>;
+  isEquipment?: boolean;
+  maxCount?: number;
+  requiresWorkshop?: boolean;
+  unlockRequirement?: (resources: Resources, buildings: Buildings) => boolean;
+}
+
+export const BUILDING_RECIPES: BuildingRecipe[] = [
+  {
+    id: 'traps',
+    name: '陷阱 (Trap)',
+    description: '設置在森林中的簡易陷阱，定期捕捉小型獵物、毛皮與碎骨。',
+    cost: (current) => ({
+      wood: 10 + Math.floor(current * 2)
+    }),
+    maxCount: 20
+  },
+  {
+    id: 'huts',
+    name: '工棚 (Hut)',
+    description: '為無家可歸的流浪者提供遮風避雨之所。每座工棚可容納 4 名村民。',
+    cost: (current) => ({
+      wood: 100 + Math.floor(Math.pow(current, 1.4) * 50)
+    }),
+    maxCount: 20
+  },
+  {
+    id: 'workshop',
+    name: '工作坊 (Workshop)',
+    description: '打造各類工具、防具與武器的專用作坊。',
+    cost: () => ({
+      wood: 400,
+      leather: 100
+    }),
+    maxCount: 1,
+    unlockRequirement: (_, res) => (res.wood >= 150 && res.leather >= 30) || res.fur >= 100
+  },
+  {
+    id: 'tannery',
+    name: '製革廠 (Tannery)',
+    description: '讓製革工將粗糙毛皮加工成強韌皮革。',
+    cost: () => ({
+      wood: 300,
+      fur: 150
+    }),
+    maxCount: 1,
+    unlockRequirement: (_, res) => res.fur >= 50
+  },
+  {
+    id: 'smokehouse',
+    name: '燻肉房 (Smokehouse)',
+    description: '將生肉燻製成不易腐敗的肉乾，是遠征冒險必備乾糧。',
+    cost: () => ({
+      wood: 600,
+      meat: 200
+    }),
+    maxCount: 1,
+    unlockRequirement: (_, res) => res.meat >= 50
+  },
+  {
+    id: 'furnace',
+    name: '熔爐 (Furnace)',
+    description: '燃燒木材與煤炭，將鐵礦冶煉為高強度鋼鐵。',
+    cost: () => ({
+      wood: 1000,
+      iron: 200
+    }),
+    maxCount: 1,
+    unlockRequirement: (_, res) => res.iron >= 50
+  },
+  {
+    id: 'armory',
+    name: '軍械庫 (Armory)',
+    description: '製造精良的鋼鐵武器與彈藥。',
+    cost: () => ({
+      wood: 1500,
+      steel: 300
+    }),
+    maxCount: 1,
+    unlockRequirement: (_, res) => res.steel >= 50
+  }
+];
+
+export const WORKER_JOBS: WorkerJob[] = [
+  {
+    id: 'gatherers',
+    name: '伐木工 (Woodcutter)',
+    description: '在村莊周圍採集木材。',
+    production: { wood: 5 }, // +0.5/s
+    consumption: {}
+  },
+  {
+    id: 'hunters',
+    name: '獵人 (Hunter)',
+    description: '深入森林狩獵，提供生肉與毛皮。',
+    production: { meat: 3, fur: 2 },
+    consumption: {}
+  },
+  {
+    id: 'trappers',
+    name: '陷阱工 (Trapper)',
+    description: '巡視並重置陷阱，提高產出效率並偶爾獲得尖牙與鱗片。',
+    production: { meat: 2, fur: 2, teeth: 0.5, scales: 0.2 },
+    consumption: {},
+    requiredBuilding: 'traps'
+  },
+  {
+    id: 'tanners',
+    name: '製革工 (Tanner)',
+    description: '將毛皮加工為耐用皮革。',
+    production: { leather: 2 },
+    consumption: { fur: 5 },
+    requiredBuilding: 'tannery'
+  },
+  {
+    id: 'curedMeatMakers',
+    name: '製肉工 (Smoker)',
+    description: '消耗木材將生肉燻製為肉乾。',
+    production: { curedMeat: 2 },
+    consumption: { meat: 4, wood: 5 },
+    requiredBuilding: 'smokehouse'
+  },
+  {
+    id: 'ironMiners',
+    name: '鐵礦工 (Iron Miner)',
+    description: '在鐵礦坑開採鐵礦。',
+    production: { iron: 2 },
+    consumption: { curedMeat: 1 },
+    requiredBuilding: 'workshop'
+  },
+  {
+    id: 'coalMiners',
+    name: '煤礦工 (Coal Miner)',
+    description: '在煤礦坑開採煤炭。',
+    production: { coal: 2 },
+    consumption: { curedMeat: 1 },
+    requiredBuilding: 'furnace'
+  },
+  {
+    id: 'steelworkers',
+    name: '煉鋼工 (Steelworker)',
+    description: '使用煤炭精煉鐵礦產出鋼材。',
+    production: { steel: 1 },
+    consumption: { iron: 2, coal: 2 },
+    requiredBuilding: 'furnace'
+  }
+];
+
+export const CRAFT_RECIPES: CraftRecipe[] = [
+  {
+    id: 'torches',
+    name: '火把 (Torch)',
+    description: '照亮陰暗洞穴與廢墟的必需品。',
+    cost: { wood: 5, curedMeat: 1 },
+    requiresWorkshop: true
+  },
+  {
+    id: 'canteenLevel',
+    name: '水壺升級 (Canteen Upgrade)',
+    description: '擴充外出探索時的水量攜帶上限（每次升級 +15 水量）。',
+    cost: { leather: 50, iron: 20 },
+    maxCount: 5,
+    isEquipment: true,
+    requiresWorkshop: true
+  },
+  {
+    id: 'cart',
+    name: '推車 (Cart)',
+    description: '手推推車，提升每次手動伐木獲得的木材量 (+10)。',
+    cost: { wood: 50, leather: 10 },
+    maxCount: 1,
+    isEquipment: true,
+    requiresWorkshop: true
+  },
+  {
+    id: 'wagon',
+    name: '大型貨車 (Wagon)',
+    description: '大幅提升手動伐木獲取量 (+30)。',
+    cost: { wood: 300, iron: 50 },
+    maxCount: 1,
+    isEquipment: true,
+    requiresWorkshop: true
+  },
+  {
+    id: 'compass',
+    name: '指南針 (Compass)',
+    description: '鏽蝕但依然靈敏的磁針，解鎖荒野「大地圖探索」路線。',
+    cost: { scales: 20, teeth: 10, iron: 15 },
+    maxCount: 1,
+    isEquipment: true,
+    requiresWorkshop: true
+  },
+  {
+    id: 'boneSpear',
+    name: '骨矛 (Bone Spear)',
+    description: '使用獸骨磨製的長矛，攻擊力 3。',
+    cost: { wood: 50, teeth: 15 },
+    maxCount: 1,
+    isEquipment: true,
+    requiresWorkshop: true
+  },
+  {
+    id: 'ironSword',
+    name: '鐵劍 (Iron Sword)',
+    description: '鋒利的鍛鐵單手劍，攻擊力 6。',
+    cost: { iron: 100, leather: 30 },
+    maxCount: 1,
+    isEquipment: true,
+    requiresWorkshop: true
+  },
+  {
+    id: 'steelSword',
+    name: '鋼劍 (Steel Sword)',
+    description: '堅硬耐用的精鋼長劍，攻擊力 12。',
+    cost: { steel: 150, leather: 50 },
+    maxCount: 1,
+    isEquipment: true,
+    requiresWorkshop: true
+  },
+  {
+    id: 'rifle',
+    name: '獵槍 (Hunting Rifle)',
+    description: '老舊但威力強大的手動步槍，攻擊力 25。消耗子彈。',
+    cost: { steel: 200, iron: 100, wood: 100 },
+    maxCount: 1,
+    isEquipment: true,
+    requiresWorkshop: true
+  },
+  {
+    id: 'bullets',
+    name: '彈藥 x10 (Bullets)',
+    description: '獵槍使用的火藥子彈。',
+    cost: { steel: 10, coal: 20 },
+    requiresWorkshop: true
+  }
+];
