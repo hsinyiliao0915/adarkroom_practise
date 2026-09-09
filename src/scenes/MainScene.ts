@@ -10,6 +10,7 @@ import { VillageView } from '../ui/VillageView';
 import { CraftView } from '../ui/CraftView';
 import { MapView } from '../ui/MapView';
 import { TextButton } from '../ui/TextButton';
+import { LeaderboardModal } from '../ui/LeaderboardModal';
 import { createTextStyle } from '../config/typography';
 
 export class MainScene extends Phaser.Scene {
@@ -22,6 +23,7 @@ export class MainScene extends Phaser.Scene {
   private villageView!: VillageView;
   private craftView!: CraftView;
   private mapView!: MapView;
+  private leaderboardModal!: LeaderboardModal;
 
   private tabButtons: Map<ActiveTab, TextButton> = new Map();
 
@@ -63,10 +65,13 @@ export class MainScene extends Phaser.Scene {
     // Right: Resource Inventory Panel
     this.resourcePanel = new ResourcePanel(this, 802, 55, 230, 645);
 
-    // 4. Switch to current tab
+    // 4. Create Leaderboard Modal
+    this.leaderboardModal = new LeaderboardModal(this);
+
+    // 5. Switch to current tab
     this.switchTab(this.gameState.activeTab);
 
-    // 5. Subscribe to EventBus
+    // 6. Subscribe to EventBus
     EventBus.getInstance().on(Events.STATE_CHANGED, () => {
       this.refreshUI();
     });
@@ -77,7 +82,7 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    // 6. Start Tick Engine & AutoSave
+    // 7. Start Tick Engine & AutoSave
     TickEngine.getInstance().start(() => this.gameState, 500);
     SaveManager.getInstance().startAutoSave(() => this.gameState, 10000);
 
@@ -120,7 +125,17 @@ export class MainScene extends Phaser.Scene {
       tabStartX += 95;
     });
 
-    // Save & Reset Buttons on top right
+    // Leaderboard, Save & Reset Buttons on top right
+    new TextButton(this, 835, 25, {
+      text: '🏆 排行榜',
+      width: 75,
+      height: 26,
+      fontSize: '11px',
+      onClick: () => {
+        this.leaderboardModal.show(this);
+      }
+    });
+
     new TextButton(this, 915, 25, {
       text: '存檔',
       width: 55,
