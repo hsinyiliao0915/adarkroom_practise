@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GameData, SaveMetadata } from '../core/GameState';
 import { SaveManager } from '../core/SaveManager';
+import { RoomSystem } from '../systems/RoomSystem';
 import { EventBus, Events } from '../core/EventBus';
 import { TextButton } from './TextButton';
 import { createTextStyle } from '../config/typography';
@@ -228,7 +229,7 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     if (!state) return;
 
     const defaultName = `荒野探險紀錄 (${new Date().toLocaleDateString()})`;
-    const customName = window.prompt('請輸入新存檔的名稱：', defaultName);
+    const customName = window.prompt('輸入新存檔名稱：', defaultName);
 
     if (customName && customName.trim()) {
       const res = SaveManager.getInstance().createSave(state, customName.trim());
@@ -246,6 +247,8 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     if (window.confirm(`確定要載入【${meta.name}】嗎？未儲存的當前進度將會遺失。`)) {
       const loaded = SaveManager.getInstance().load(meta.id);
       (scene as any).gameState = loaded;
+      RoomSystem.getInstance().resetTimers();
+      (scene as any).resourcePanel?.resetDiscovered(loaded);
       (scene as any).switchTab(loaded.activeTab || 'room');
       (scene as any).logPanel?.initFromState(loaded);
       (scene as any).refreshUI();
@@ -266,10 +269,12 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     if (window.confirm('確定要開啟新遊戲嗎？現有歷史存檔將完整保留，系統將為你建立全新開局。')) {
       const newGame = SaveManager.getInstance().startNewGame();
       (scene as any).gameState = newGame.state;
+      RoomSystem.getInstance().resetTimers();
+      (scene as any).resourcePanel?.resetDiscovered(newGame.state);
       (scene as any).switchTab('room');
       (scene as any).logPanel?.initFromState(newGame.state);
       (scene as any).refreshUI();
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！火堆已熄滅，房間很冷。`, 'story');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！房間寒冷刺骨，火堆熄滅了。`, 'story');
       this.hide();
     }
   }

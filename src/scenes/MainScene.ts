@@ -1,4 +1,4 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { GameData, ActiveTab } from '../core/GameState';
 import { SaveManager } from '../core/SaveManager';
 import { TickEngine } from '../core/TickEngine';
@@ -13,6 +13,7 @@ import { MapView } from '../ui/MapView';
 import { ShipView } from '../ui/ShipView';
 import { SpaceFlightView } from '../ui/SpaceFlightView';
 import { SaveLoadModal } from '../ui/SaveLoadModal';
+import { RoomSystem } from '../systems/RoomSystem';
 import { createTextStyle } from '../config/typography';
 
 interface TabItem {
@@ -80,15 +81,19 @@ export class MainScene extends Phaser.Scene {
       () => {
         const newGame = SaveManager.getInstance().startNewGame();
         this.gameState = newGame.state;
+        RoomSystem.getInstance().resetTimers();
+        this.resourcePanel.resetDiscovered(this.gameState);
         this.switchTab('room');
         this.logPanel.initFromState(this.gameState);
         this.refreshUI();
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！火堆已熄滅，房間很冷。`, 'story');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！房間寒冷刺骨，火堆熄滅了。`, 'story');
       }
     );
 
     // Right: Resource Inventory Panel
     this.resourcePanel = new ResourcePanel(this, 810, 55, 220, 645);
+    this.resourcePanel.resetDiscovered(this.gameState);
+    RoomSystem.getInstance().resetTimers();
 
     // 4. Create Save/Load Modal
     this.saveLoadModal = new SaveLoadModal(this);
@@ -181,10 +186,12 @@ export class MainScene extends Phaser.Scene {
       if (window.confirm('確定要開啟新遊戲嗎？現有歷史存檔將完整保留，系統將為你建立全新開局。')) {
         const newGame = SaveManager.getInstance().startNewGame();
         this.gameState = newGame.state;
+        RoomSystem.getInstance().resetTimers();
+        this.resourcePanel.resetDiscovered(this.gameState);
         this.switchTab('room');
         this.logPanel.initFromState(this.gameState);
         this.refreshUI();
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！火堆已熄滅，房間很冷。`, 'story');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！房間寒冷刺骨，火堆熄滅了。`, 'story');
       }
     });
   }

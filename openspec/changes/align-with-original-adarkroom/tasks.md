@@ -1,20 +1,20 @@
-﻿## 1. 頁籤導航重構 (Inline Tab Navigation)
+## 1. 開局狀態機與森林解鎖時序重構 (Opening State Machine)
 
-- [ ] 1.1 在 `MainScene.ts` 中建立中央頂部行內文字導航（`生火間 | 靜謐森林 | ...`），支援文字點擊與啟用底線標記，透過瀏覽器點擊驗證。
-- [ ] 1.2 移除舊有的寬版導航列按鈕，將存檔與新遊戲移至簡約輔助文字連結，透過執行測試與視覺檢驗。
+- [x] 1.1 重構 `RoomSystem.ts` 中的前期狀態機：點火切換為 burning 並發送火光穿窗訊息，依時序延遲觸發陌生人倒地（約 8s），再延遲觸發 `unlockForest`（約 12s）。
+- [x] 1.2 在 `unlockForest` 觸發時才賦予 `wood = 4`、解鎖森林頁籤並顯示寒風與乾柴見底日誌，杜絕開局森林秒開問題。
+- [x] 1.3 實裝陌生人在屋內升溫時的漸進甦醒（發抖 -> 平靜 -> 起身幫助），解鎖生火間內建造「陷阱」與「貨車」。
 
-## 2. 視圖職責分離 (RoomView & OutsideView)
+## 2. 庫存面板重設與純淨隱藏 (Stores Panel Clean Reset)
 
-- [ ] 2.1 建立 `src/ui/OutsideView.ts`（靜謐森林），承接伐木、巡視陷阱與誘餌操作，並驗證冷卻動畫與產出正常。
-- [ ] 2.2 重構 `src/ui/RoomView.ts`（生火間），專注於壁爐狀態、點火/添柴與建造者解鎖的建築物清單（陷阱、貨車、棚屋等）。
-- [ ] 2.3 在 `GameState.ts` 與 `RoomSystem.ts` 確保森林與生火間的解鎖狀態流轉無縫，執行 `npm test` 驗證所有遊戲邏輯不破壞。
+- [x] 2.1 在 `ResourcePanel.ts` 實裝 `resetDiscovered(state)`，開新遊戲與載入存檔時同步清除快取，未解鎖前完全隱藏。
+- [x] 2.2 在 `MainScene.ts` 的開新局與載入邏輯中呼叫 `resetDiscovered`，確保新局右側 100% 空白無干擾。
 
-## 3. 緊湊 Fieldset 物資與聚落面板 (Compact Fieldset Panels)
+## 3. 頁籤與介面視覺細節 (Visuals & Navigation)
 
-- [ ] 3.1 更新 `ResourcePanel.ts`，開局資源為 0 時完全隱藏，獲得資源後自適應高度包裹項目。
-- [ ] 3.2 在右側建立或整合人口與村民分配緊湊線框，當有棚屋時自適應顯示於庫存上方。
+- [x] 3.1 確保中央上方行內頁籤在只有生火間時不顯示孤立分隔線，當森林解鎖後平滑浮現 `生火間 | 靜謐森林`。
+- [x] 3.2 檢查所有文本與日誌維持標準正體中文與詩意文筆。
 
-## 4. 系統整合與驗證 (Integration & Verification)
+## 4. 系統驗證與測試 (Verification)
 
-- [ ] 4.1 執行 `npm test` 確認所有單元測試 100% 通過。
-- [ ] 4.2 執行 `npm run build` 確認 TypeScript 與 Vite 生產環境編譯零錯誤。
+- [x] 4.1 執行 `npm test` 確認 36 項測試通過。
+- [x] 4.2 執行 `npm run build` 確認生產環境建置通過。

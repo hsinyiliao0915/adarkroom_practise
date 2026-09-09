@@ -1,4 +1,4 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { GameData } from '../core/GameState';
 import { TextButton } from './TextButton';
 import { RoomSystem } from '../systems/RoomSystem';
@@ -47,10 +47,10 @@ export class RoomView extends Phaser.GameObjects.Container {
     );
 
     // Action Buttons
-    // 1. Light Fire (點燃壁爐)
-    this.lightFireBtn = new TextButton(scene, 100, 130, {
-      text: '點燃壁爐',
-      width: 180,
+    // 1. Light Fire (生火)
+    this.lightFireBtn = new TextButton(scene, 90, 130, {
+      text: '生火',
+      width: 140,
       height: 38,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
@@ -61,9 +61,9 @@ export class RoomView extends Phaser.GameObjects.Container {
     });
 
     // 2. Stoke Fire (添柴)
-    this.stokeFireBtn = new TextButton(scene, 100, 130, {
-      text: '添柴 (1 木材)',
-      width: 180,
+    this.stokeFireBtn = new TextButton(scene, 90, 130, {
+      text: '添柴',
+      width: 140,
       height: 38,
       cooldownMs: 2500,
       onClick: () => {
@@ -135,18 +135,18 @@ export class RoomView extends Phaser.GameObjects.Container {
 
   public updateDisplay(state: GameData): void {
     const fireMap = {
-      dead: '壁爐裡的火已熄滅。',
-      smoldering: '火苗在灰燼中微弱悶燒著。',
-      flickering: '火焰正搖曳跳動。',
-      burning: '壁爐裡的火燒得正旺。',
-      roaring: '熊熊烈火驅散了所有寒意。'
+      dead: '火堆已熄滅。',
+      smoldering: '火堆開始冒煙。',
+      flickering: '火堆冒出火苗。',
+      burning: '火堆燃燒著。',
+      roaring: '火堆熊熊燃燒。'
     };
 
     const warmthMap = {
-      freezing: '房間：刺骨寒冷',
-      cold: '房間：微冷',
-      mild: '房間：溫暖適中',
-      warm: '房間：溫暖如春'
+      freezing: '房間：寒冷刺骨',
+      cold: '房間：很冷',
+      mild: '房間：微溫',
+      warm: '房間：暖和'
     };
 
     this.statusText.setText(fireMap[state.fireState] || '');
@@ -163,9 +163,9 @@ export class RoomView extends Phaser.GameObjects.Container {
     if (state.strangerState === 'none') {
       this.strangerText.setText('');
     } else if (state.strangerState === 'sleeping') {
-      this.strangerText.setText('神秘女子躺在壁爐邊沉睡，呼吸逐漸平穩。');
+      this.strangerText.setText('一名陌生人癱倒在角落裡，昏迷不醒。');
     } else if (state.strangerState === 'awake' || state.strangerState === 'helping') {
-      this.strangerText.setText('建造者在房間一角專注地繪製著聚落藍圖。');
+      this.strangerText.setText('陌生人站在火堆旁。她說她會建造東西。');
     }
 
     // Fire button logic
@@ -176,7 +176,8 @@ export class RoomView extends Phaser.GameObjects.Container {
     } else {
       this.lightFireBtn.setVisible(false);
       this.stokeFireBtn.setVisible(true);
-      this.stokeFireBtn.setEnabled(state.resources.wood >= 1);
+      this.stokeFireBtn.setText(state.unlockedForest ? '添柴 (1 木材)' : '添柴');
+      this.stokeFireBtn.setEnabled(!state.unlockedForest || state.resources.wood >= 1);
     }
 
     // Builder buildings logic

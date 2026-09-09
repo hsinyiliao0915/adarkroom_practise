@@ -265,7 +265,7 @@ export const INITIAL_GAME_DATA: GameData = {
   },
 
   logs: [
-    { text: '房間很冷。', time: 0, type: 'story' },
-    { text: '壁爐裡的火已經熄滅了。', time: 0, type: 'story' }
+    { text: '房間寒冷刺骨。', time: 0, type: 'story' },
+    { text: '火堆熄滅了。', time: 0, type: 'story' }
   ]
 };

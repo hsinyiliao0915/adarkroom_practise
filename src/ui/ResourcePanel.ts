@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { GameData, Resources } from '../core/GameState';
 import { ResourceSystem } from '../systems/ResourceSystem';
 import { createTextStyle } from '../config/typography';
@@ -69,13 +69,40 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
       this.add(textObj);
     });
 
-    // Initially hidden until any resource is discovered
+    // Initially completely hidden until stores are unlocked
     this.setVisible(false);
 
     scene.add.existing(this);
   }
 
+  public resetDiscovered(state?: GameData): void {
+    this.discoveredKeys.clear();
+    if (state && state.resources) {
+      for (const [k, v] of Object.entries(state.resources)) {
+        if (typeof v === 'number' && v > 0) {
+          this.discoveredKeys.add(k as keyof Resources);
+        }
+      }
+    }
+    this.setVisible(this.discoveredKeys.size > 0);
+  }
+
   public updateDisplay(state: GameData): void {
+    // If forest hasn't been unlocked and no resources exist, stores panel must remain completely hidden
+    if (!state.unlockedForest && this.discoveredKeys.size === 0) {
+      let anyRes = false;
+      for (const v of Object.values(state.resources)) {
+        if (v > 0) {
+          anyRes = true;
+          break;
+        }
+      }
+      if (!anyRes) {
+        this.setVisible(false);
+        return;
+      }
+    }
+
     const netRates = ResourceSystem.getInstance().getNetRates(state);
 
     let visibleIndex = 0;

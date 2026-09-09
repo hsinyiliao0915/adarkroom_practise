@@ -1,8 +1,15 @@
-import { GameData, FireState } from '../core/GameState';
+import { GameData, FireState, WarmthLevel } from '../core/GameState';
 import { EventBus, Events } from '../core/EventBus';
 
 export class RoomSystem {
   private static instance: RoomSystem;
+
+  // Opening sequence timers (in seconds)
+  private strangerArrivalTimer: number = -1;
+  private forestUnlockTimer: number = -1;
+  private strangerWarmTimer: number = 15;
+  private strangerWarmStage: number = 0;
+  private warmthAdjustTimer: number = 0;
 
   private constructor() {}
 
@@ -13,46 +20,61 @@ export class RoomSystem {
     return RoomSystem.instance;
   }
 
+  public resetTimers(): void {
+    this.strangerArrivalTimer = -1;
+    this.forestUnlockTimer = -1;
+    this.strangerWarmTimer = 15;
+    this.strangerWarmStage = 0;
+    this.warmthAdjustTimer = 0;
+  }
+
   public lightFire(state: GameData): boolean {
     if (state.fireState !== 'dead') return false;
 
-    state.fireFuel = 30;
-    state.fireState = 'smoldering';
+    state.fireFuel = 60;
+    state.fireState = 'burning';
     state.warmthLevel = 'cold';
-    if (state.resources.wood === 0) {
-      state.resources.wood = 4;
-    }
+    // Authentic ADR: do NOT set wood here! Wood remains 0 until forest unlock.
     
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, '火苗在壁爐中微弱地燃起。冷風稍微被驅散了。', 'story');
-    EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, '火堆燃燒著。', 'story');
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, '火光映出窗外，投入黑暗之中。', 'story');
+    
+    // Stranger will arrive in ~8 seconds
+    this.strangerArrivalTimer = 8;
+    this.warmthAdjustTimer = 10;
+
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
   }
 
   public stokeFire(state: GameData): boolean {
-    if (state.resources.wood < 1 && state.fireState === 'dead') {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '沒有木材可以生火。', 'warn');
-      return false;
+    // Before forest is unlocked, stoking is free (twigs/leaves)
+    if (!state.unlockedForest) {
+      state.fireFuel = Math.min(100, state.fireFuel + 30);
+      this.updateFireState(state);
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '添了柴火。', 'info');
+      EventBus.getInstance().emit(Events.STATE_CHANGED);
+      return true;
     }
 
+    // After forest is unlocked, stoking requires wood
     if (state.fireState === 'dead') {
       if (state.resources.wood >= 5) {
         state.resources.wood -= 5;
-        state.fireFuel = 40;
-        state.fireState = 'flickering';
-        state.warmthLevel = 'cold';
+        state.fireFuel = 60;
+        state.fireState = 'burning';
         EventBus.getInstance().emit(Events.LOG_MESSAGE, '用剩餘的木柴重新點燃了壁爐。', 'story');
         EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
         EventBus.getInstance().emit(Events.STATE_CHANGED);
         return true;
       } else {
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '需要至少 5 根木材才能重新點燃熄滅的壁爐。', 'warn');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '木材不夠生火了。', 'warn');
         return false;
       }
     }
 
     if (state.resources.wood < 1) {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '木柴耗盡了。', 'warn');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '木材用光了。', 'warn');
       return false;
     }
 
@@ -60,14 +82,7 @@ export class RoomSystem {
     state.fireFuel = Math.min(100, state.fireFuel + 25);
     this.updateFireState(state);
 
-    if (!state.unlockedForest) {
-      state.unlockedForest = true;
-      state.unlockedTabs.forest = true;
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '庫存的乾柴不多了。必須踏入外面的森林採集木材。', 'story');
-      EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'forest');
-    }
-
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, '你向壁爐中添了一根木柴。火光跳躍著。', 'info');
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, '添了柴火。', 'info');
     EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
@@ -75,41 +90,103 @@ export class RoomSystem {
 
   public tick(state: GameData, deltaSeconds: number): void {
     const oldFireState: FireState = state.fireState;
-    if (oldFireState === 'dead') {
-      state.warmthLevel = 'freezing';
-      return;
+
+    if (oldFireState !== 'dead') {
+      // Fire fuel decays over time
+      const decayRate = 0.5; // fuel per second
+      state.fireFuel = Math.max(0, state.fireFuel - decayRate * deltaSeconds);
+      this.updateFireState(state);
+
+      if (state.fireState === 'dead') {
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '壁爐裡的火熄滅了。屋內再次陷入刺骨寒冷。', 'warn');
+        EventBus.getInstance().emit(Events.STATE_CHANGED);
+      }
     }
 
-    // Fire fuel decays over time
-    const decayRate = 1.0; // fuel per second
-    state.fireFuel = Math.max(0, state.fireFuel - decayRate * deltaSeconds);
+    // Warmth level gradual adjustment
+    this.warmthAdjustTimer -= deltaSeconds;
+    if (this.warmthAdjustTimer <= 0) {
+      this.warmthAdjustTimer = 12;
+      this.adjustWarmth(state);
+    }
 
-    this.updateFireState(state);
+    // 1. Opening sequence: Stranger arrival
+    if (this.strangerArrivalTimer > 0) {
+      this.strangerArrivalTimer -= deltaSeconds;
+      if (this.strangerArrivalTimer <= 0) {
+        state.strangerState = 'sleeping';
+        this.strangerWarmStage = 1;
+        this.strangerWarmTimer = 15;
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '一個衣衫襤褸的陌生人步履蹣跚地步入門來，癱倒在角落裡。', 'story');
+        // Stranger arrived -> set forest unlock timer (~12 seconds)
+        this.forestUnlockTimer = 12;
+        EventBus.getInstance().emit(Events.STATE_CHANGED);
+      }
+    }
+
+    // 2. Opening sequence: Forest unlock & initial wood
+    if (this.forestUnlockTimer > 0) {
+      this.forestUnlockTimer -= deltaSeconds;
+      if (this.forestUnlockTimer <= 0) {
+        state.resources.wood = 4;
+        state.unlockedForest = true;
+        state.unlockedTabs.forest = true;
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '屋外寒風呼嘯。', 'story');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '木材就快燒完了。', 'story');
+        EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'forest');
+        EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
+        EventBus.getInstance().emit(Events.STATE_CHANGED);
+      }
+    }
+
+    // 3. Stranger recovery / builder progression
+    if (state.strangerState === 'sleeping' && (state.warmthLevel === 'mild' || state.warmthLevel === 'warm')) {
+      if (this.strangerWarmStage === 0) {
+        this.strangerWarmStage = 1;
+      }
+      this.strangerWarmTimer -= deltaSeconds;
+      if (this.strangerWarmTimer <= 0) {
+        if (this.strangerWarmStage === 1) {
+          this.strangerWarmStage = 2;
+          this.strangerWarmTimer = 15;
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '陌生人瑟瑟發抖，呢喃不已，聽不清在說些什麼。', 'story');
+          EventBus.getInstance().emit(Events.STATE_CHANGED);
+        } else if (this.strangerWarmStage === 2) {
+          this.strangerWarmStage = 3;
+          this.strangerWarmTimer = 15;
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '角落裡的陌生人不再顫抖了，她的呼吸平靜了下來。', 'story');
+          EventBus.getInstance().emit(Events.STATE_CHANGED);
+        } else if (this.strangerWarmStage === 3) {
+          state.strangerState = 'awake';
+          state.unlockedBuilder = true;
+          state.unlockedTabs.village = true;
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '那名陌生人站在火堆旁。她說她可以幫忙。她說她會建造東西。', 'story');
+          EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'village');
+          EventBus.getInstance().emit(Events.STATE_CHANGED);
+        }
+      }
+    }
+  }
+
+  private adjustWarmth(state: GameData): void {
+    const warmthOrder: WarmthLevel[] = ['freezing', 'cold', 'mild', 'warm'];
+    const currentIdx = warmthOrder.indexOf(state.warmthLevel);
 
     if (state.fireState === 'dead') {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '壁爐裡的火熄滅了。屋內再次陷入刺骨的寒冷。', 'warn');
-    }
-
-    if (state.fireState !== 'dead' && state.resources.wood <= 1 && !state.unlockedForest) {
-      state.unlockedForest = true;
-      state.unlockedTabs.forest = true;
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '庫存的乾柴快要燒完了。必須踏入外面的森林採集木材。', 'story');
-      EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'forest');
-    }
-
-    // Stranger arrival trigger
-    if (state.strangerState === 'none' && (state.warmthLevel === 'mild' || state.warmthLevel === 'warm')) {
-      if (Math.random() < 0.05 * deltaSeconds) {
-        state.strangerState = 'sleeping';
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '門外傳來虛弱的敲門聲。一名昏迷的旅人倒在門檻上，你將她扶至壁爐旁。', 'story');
+      if (currentIdx > 0) {
+        state.warmthLevel = warmthOrder[currentIdx - 1];
+        EventBus.getInstance().emit(Events.STATE_CHANGED);
       }
-    } else if (state.strangerState === 'sleeping' && state.warmthLevel === 'warm') {
-      if (Math.random() < 0.08 * deltaSeconds) {
-        state.strangerState = 'awake';
-        state.unlockedTabs.village = true;
-        state.unlockedForest = true;
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '旅人醒來了。她自稱是一位建造者，願意協助你在這片荒蕪之地建立聚落。', 'story');
-        EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'village');
+    } else if (state.fireState === 'burning' || state.fireState === 'roaring') {
+      if (currentIdx < warmthOrder.length - 1) {
+        state.warmthLevel = warmthOrder[currentIdx + 1];
+        EventBus.getInstance().emit(Events.STATE_CHANGED);
+      }
+    } else if (state.fireState === 'flickering') {
+      // Holds around mild
+      if (currentIdx < 2) {
+        state.warmthLevel = warmthOrder[currentIdx + 1];
+        EventBus.getInstance().emit(Events.STATE_CHANGED);
       }
     }
   }
@@ -117,19 +194,14 @@ export class RoomSystem {
   private updateFireState(state: GameData): void {
     if (state.fireFuel <= 0) {
       state.fireState = 'dead';
-      state.warmthLevel = 'freezing';
     } else if (state.fireFuel < 20) {
       state.fireState = 'smoldering';
-      state.warmthLevel = 'cold';
     } else if (state.fireFuel < 50) {
       state.fireState = 'flickering';
-      state.warmthLevel = 'mild';
     } else if (state.fireFuel < 85) {
       state.fireState = 'burning';
-      state.warmthLevel = 'warm';
     } else {
       state.fireState = 'roaring';
-      state.warmthLevel = 'warm';
     }
   }
 }
