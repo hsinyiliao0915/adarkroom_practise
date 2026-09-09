@@ -71,13 +71,13 @@ export class MainScene extends Phaser.Scene {
 
     // 3. Create Panels
     // Left: Event Log Panel
-    this.logPanel = new LogPanel(this, 18, 55, 270, 645);
+    this.logPanel = new LogPanel(this, 18, 55, 300, 645);
     this.logPanel.initFromState(this.gameState);
 
     // Center Views Container
-    const centerViewX = 320;
+    const centerViewX = 338;
     const centerViewY = 55;
-    const centerViewW = 470;
+    const centerViewW = 450;
 
     this.roomView = new RoomView(this, centerViewX, centerViewY, centerViewW);
     this.outsideView = new OutsideView(this, centerViewX, centerViewY);

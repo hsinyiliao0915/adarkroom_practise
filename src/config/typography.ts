@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
-export const FONT_FAMILY = '"Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", -apple-system, sans-serif';
-export const MONO_FONT = '"Cascadia Code", "SFMono-Regular", Consolas, "Courier New", "Microsoft JhengHei", monospace';
+export const FONT_FAMILY = '"PingFang SC", "PingFang TC", "Noto Sans TC", "Microsoft YaHei", "Microsoft JhengHei", -apple-system, sans-serif';
+export const MONO_FONT = '"Cascadia Code", "SFMono-Regular", Consolas, "Courier New", "Microsoft YaHei", monospace';
 
 export const TEXT_RESOLUTION = Math.max(window.devicePixelRatio || 1, 2);
 

@@ -23,9 +23,9 @@ export class LogPanel extends Phaser.GameObjects.Container {
         14,
         0,
         '',
-        createTextStyle('12px', '#e2e8f0', false, {
-          wordWrap: { width: width - 28, useAdvancedWrap: true },
-          lineSpacing: 4
+        createTextStyle('15px', '#ffffff', false, {
+          wordWrap: { width: width - 24, useAdvancedWrap: true },
+          lineSpacing: 7
         })
       );
       entryText.setVisible(false);
@@ -103,14 +103,11 @@ export class LogPanel extends Phaser.GameObjects.Container {
         entryText.setY(currentY);
         entryText.setVisible(true);
 
-        if (i === 0) entryText.setAlpha(1.0);
-        else if (i < 3) entryText.setAlpha(0.85);
-        else if (i < 7) entryText.setAlpha(0.65);
-        else if (i < 12) entryText.setAlpha(0.45);
-        else entryText.setAlpha(0.25);
+        const alpha = Math.max(0.18, 1.0 - i * 0.052);
+        entryText.setAlpha(alpha);
 
         // Dynamically advance Y by the actual measured height of this entry plus margin
-        currentY += entryText.height + 8;
+        currentY += entryText.height + 10;
       } else {
         entryText.setVisible(false);
         entryText.setText('');

@@ -184,23 +184,12 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.strangerText.setColor(theme.textPrimary);
     }
 
-    // Dynamic vertical layout: avoid any overlapping
-    let currentY = 20;
+    this.statusText.setVisible(false);
+    this.warmthText.setVisible(false);
+    this.strangerText.setVisible(false);
 
-    this.statusText.setY(currentY);
-    currentY += this.statusText.height + 8;
-
-    this.warmthText.setY(currentY);
-    currentY += this.warmthText.height + 10;
-
-    if (state.strangerState !== 'none' && this.strangerText.text.length > 0) {
-      this.strangerText.setY(currentY);
-      this.strangerText.setVisible(true);
-      currentY += this.strangerText.height + 20;
-    } else {
-      this.strangerText.setVisible(false);
-      currentY += 10;
-    }
+    // Dynamic vertical layout: match authentic A Dark Room
+    let currentY = 25;
 
     // Fire button (button center Y is currentY + 19)
     const fireBtnY = currentY + 19;
