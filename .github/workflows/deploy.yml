@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 檢出儲存庫代碼 (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js 執行環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 安裝相依套件 (Install dependencies)
+        run: npm ci
+
+      - name: 編譯打包遊戲 (Build Vite project)
+        run: npm run build
+
+      - name: 設定 GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上傳打包產物 (Upload Pages Artifact)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: 發布至 GitHub Pages (Deploy)
+        id: deployment
+        uses: actions/deploy-pages@v4
