@@ -11,9 +11,9 @@ export class DevAutoSystem {
   private gatherCooldownMs: number = 0;
   private checkTrapsCooldownMs: number = 0;
 
-  public static readonly STOKE_INTERVAL_MS = 2500;
-  public static readonly GATHER_INTERVAL_MS = 3500;
-  public static readonly TRAP_INTERVAL_MS = 8000;
+  public static readonly STOKE_INTERVAL_MS = 10000;
+  public static readonly GATHER_INTERVAL_MS = 60000;
+  public static readonly TRAP_INTERVAL_MS = 90000;
 
   private unsubActions: Array<() => void> = [];
 

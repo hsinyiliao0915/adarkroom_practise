@@ -18,7 +18,7 @@ export class OutsideView extends Phaser.GameObjects.Container {
       text: '伐木',
       width: 180,
       height: 38,
-      cooldownMs: 3500,
+      cooldownMs: 60000,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
@@ -33,7 +33,7 @@ export class OutsideView extends Phaser.GameObjects.Container {
       text: '查看陷阱',
       width: 180,
       height: 38,
-      cooldownMs: 8000,
+      cooldownMs: 90000,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {

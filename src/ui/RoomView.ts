@@ -69,7 +69,7 @@ export class RoomView extends Phaser.GameObjects.Container {
       text: '添柴',
       width: 140,
       height: 38,
-      cooldownMs: 2500,
+      cooldownMs: 10000,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
@@ -136,7 +136,7 @@ export class RoomView extends Phaser.GameObjects.Container {
     ]);
 
     this.unsubStoke = EventBus.getInstance().on(Events.ACTION_STOKE_FIRE, () => {
-      this.stokeFireBtn.triggerCooldown(2500);
+      this.stokeFireBtn.triggerCooldown(10000);
     });
 
     this.on('destroy', () => {

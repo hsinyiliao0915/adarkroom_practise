@@ -81,8 +81,8 @@ describe('DevAutoSystem', () => {
     devAuto.update(1000, state);
     assert.strictEqual(state.resources.wood, 15);
 
-    // Once cooldown expires (e.g. 2600ms more, total > 3500ms)
-    devAuto.update(2600, state);
+    // Once cooldown expires (> 60000ms)
+    devAuto.update(DevAutoSystem.GATHER_INTERVAL_MS, state);
     assert.strictEqual(state.resources.wood, 25);
   });
 

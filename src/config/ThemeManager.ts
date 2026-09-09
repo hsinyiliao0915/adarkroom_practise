@@ -98,7 +98,7 @@ export const DARK_THEME: ThemePalette = {
   btnDisabledBorderHex: 0x404040,
   btnDisabledText: '#525252',
   btnCooldownOverlayHex: 0xffffff,
-  btnCooldownOverlayAlpha: 0.25,
+  btnCooldownOverlayAlpha: 0.95,
   
   storesOutlineHex: 0xffffff,
   storesOutlineAlpha: 0.35,
