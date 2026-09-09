@@ -5,7 +5,7 @@ import { TextButton } from './TextButton';
 import { createTextStyle } from '../config/typography';
 
 export class MapView extends Phaser.GameObjects.Container {
-  // Prep container
+  // 遠征整裝元件
   private prepContainer: Phaser.GameObjects.Container;
   private meatTakeCount: number = 10;
   private torchTakeCount: number = 2;
@@ -15,7 +15,7 @@ export class MapView extends Phaser.GameObjects.Container {
   private prepWeaponText: Phaser.GameObjects.Text;
   private embarkBtn: TextButton;
 
-  // Active Map container
+  // 探索大地圖元件
   private mapContainer: Phaser.GameObjects.Container;
   private hpText: Phaser.GameObjects.Text;
   private waterText: Phaser.GameObjects.Text;
@@ -24,7 +24,7 @@ export class MapView extends Phaser.GameObjects.Container {
   private locationText: Phaser.GameObjects.Text;
   private gridText: Phaser.GameObjects.Text;
 
-  // D-Pad
+  // 移動與地標按鈕
   private btnNorth: TextButton;
   private btnSouth: TextButton;
   private btnWest: TextButton;
@@ -32,7 +32,7 @@ export class MapView extends Phaser.GameObjects.Container {
   private scavengeBtn: TextButton;
   private returnBtn: TextButton;
 
-  // Combat container
+  // 戰鬥元件
   private combatContainer: Phaser.GameObjects.Container;
   private combatEnemyName: Phaser.GameObjects.Text;
   private combatEnemyHp: Phaser.GameObjects.Text;
@@ -52,7 +52,7 @@ export class MapView extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    // 1. Preparation Screen
+    // 1. 遠征行囊整裝面板
     this.prepContainer = scene.add.container(0, 0);
 
     const prepTitle = scene.add.text(
@@ -69,7 +69,7 @@ export class MapView extends Phaser.GameObjects.Container {
       createTextStyle('11px', '#94a3b8')
     );
 
-    // Meat selection
+    // 肉乾列：標籤(x:20) -> [-5](x:120) -> [+5](x:160) -> 數量文字(x:195)
     const meatLabel = scene.add.text(
       20,
       100,
@@ -77,25 +77,18 @@ export class MapView extends Phaser.GameObjects.Container {
       createTextStyle('13px', '#e2e8f0')
     );
 
-    const meatMinus = new TextButton(scene, 130, 108, {
+    const meatMinus = new TextButton(scene, 120, 108, {
       text: '-5',
       width: 32,
       height: 24,
       fontSize: '11px',
       onClick: () => {
-        this.meatTakeCount = Math.max(0, this.meatTakeCount - 5);
+        this.meatTakeCount = Math.max(0, Math.floor(this.meatTakeCount - 5));
         this.updatePrepDisplay(scene);
       }
     });
 
-    this.prepMeatText = scene.add.text(
-      165,
-      102,
-      '10',
-      createTextStyle('13px', '#facc15', true)
-    );
-
-    const meatPlus = new TextButton(scene, 210, 108, {
+    const meatPlus = new TextButton(scene, 160, 108, {
       text: '+5',
       width: 32,
       height: 24,
@@ -103,14 +96,21 @@ export class MapView extends Phaser.GameObjects.Container {
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
-          const maxPossible = state.resources.curedMeat || 0;
-          this.meatTakeCount = Math.min(maxPossible, this.meatTakeCount + 5);
+          const maxPossible = Math.floor(state.resources.curedMeat || 0);
+          this.meatTakeCount = Math.min(maxPossible, Math.floor(this.meatTakeCount + 5));
           this.updatePrepDisplay(scene);
         }
       }
     });
 
-    // Torch selection
+    this.prepMeatText = scene.add.text(
+      195,
+      100,
+      '0 (庫存: 0)',
+      createTextStyle('13px', '#facc15', true)
+    );
+
+    // 火把列：標籤(x:20) -> [-1](x:120) -> [+1](x:160) -> 數量文字(x:195)
     const torchLabel = scene.add.text(
       20,
       140,
@@ -118,25 +118,18 @@ export class MapView extends Phaser.GameObjects.Container {
       createTextStyle('13px', '#e2e8f0')
     );
 
-    const torchMinus = new TextButton(scene, 130, 148, {
+    const torchMinus = new TextButton(scene, 120, 148, {
       text: '-1',
       width: 32,
       height: 24,
       fontSize: '11px',
       onClick: () => {
-        this.torchTakeCount = Math.max(0, this.torchTakeCount - 1);
+        this.torchTakeCount = Math.max(0, Math.floor(this.torchTakeCount - 1));
         this.updatePrepDisplay(scene);
       }
     });
 
-    this.prepTorchText = scene.add.text(
-      165,
-      142,
-      '2',
-      createTextStyle('13px', '#facc15', true)
-    );
-
-    const torchPlus = new TextButton(scene, 210, 148, {
+    const torchPlus = new TextButton(scene, 160, 148, {
       text: '+1',
       width: 32,
       height: 24,
@@ -144,17 +137,24 @@ export class MapView extends Phaser.GameObjects.Container {
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
-          const maxPossible = state.resources.torches || 0;
-          this.torchTakeCount = Math.min(maxPossible, this.torchTakeCount + 1);
+          const maxPossible = Math.floor(state.resources.torches || 0);
+          this.torchTakeCount = Math.min(maxPossible, Math.floor(this.torchTakeCount + 1));
           this.updatePrepDisplay(scene);
         }
       }
     });
 
+    this.prepTorchText = scene.add.text(
+      195,
+      140,
+      '0 (庫存: 0)',
+      createTextStyle('13px', '#facc15', true)
+    );
+
     this.prepWaterText = scene.add.text(
       20,
       185,
-      '水壺滿載容量：10 單位 (自動裝滿清泉)',
+      '水壺滿載容量：10 單位 (遠征出發時自動裝滿清泉)',
       createTextStyle('12px', '#60a5fa')
     );
 
@@ -173,7 +173,9 @@ export class MapView extends Phaser.GameObjects.Container {
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
-          MapSystem.getInstance().startExpedition(state, this.meatTakeCount, this.torchTakeCount);
+          const meat = Math.floor(this.meatTakeCount);
+          const torches = Math.floor(this.torchTakeCount);
+          MapSystem.getInstance().startExpedition(state, meat, torches);
         }
       }
     });
@@ -183,18 +185,18 @@ export class MapView extends Phaser.GameObjects.Container {
       prepDesc,
       meatLabel,
       meatMinus,
-      this.prepMeatText,
       meatPlus,
+      this.prepMeatText,
       torchLabel,
       torchMinus,
-      this.prepTorchText,
       torchPlus,
+      this.prepTorchText,
       this.prepWaterText,
       this.prepWeaponText,
       this.embarkBtn
     ]);
 
-    // 2. Active Exploration Map Screen
+    // 2. 探索大地圖面板
     this.mapContainer = scene.add.container(0, 0);
 
     this.hpText = scene.add.text(
@@ -232,7 +234,6 @@ export class MapView extends Phaser.GameObjects.Container {
       createTextStyle('11px', '#94a3b8')
     );
 
-    // ASCII Map Grid Display
     const mapBoxBg = scene.add.rectangle(20, 55, 280, 280, 0x090a0f);
     mapBoxBg.setOrigin(0);
     const mapBoxBorder = scene.add.rectangle(20, 55, 280, 280);
@@ -247,7 +248,6 @@ export class MapView extends Phaser.GameObjects.Container {
       createTextStyle('16px', '#e2e8f0', true, { lineSpacing: 4 })
     );
 
-    // Movement D-Pad Controls
     const dpadCenterX = 380;
     const dpadCenterY = 160;
 
@@ -330,7 +330,7 @@ export class MapView extends Phaser.GameObjects.Container {
       legendText
     ]);
 
-    // 3. Combat Modal
+    // 3. 戰鬥面板
     this.combatContainer = scene.add.container(0, 0);
 
     const combatBg = scene.add.rectangle(20, 50, 440, 300, 0x181014, 0.98);
@@ -410,7 +410,7 @@ export class MapView extends Phaser.GameObjects.Container {
 
     this.add([this.prepContainer, this.mapContainer, this.combatContainer]);
 
-    // Keyboard bindings
+    // 鍵盤監聽
     if (scene.input.keyboard) {
       this.cursors = scene.input.keyboard.createCursorKeys();
       this.wasdKeys = {
@@ -456,20 +456,28 @@ export class MapView extends Phaser.GameObjects.Container {
     const state = (scene as any).gameState as GameData;
     if (!state) return;
 
-    this.meatTakeCount = Math.min(state.resources.curedMeat || 0, this.meatTakeCount);
-    this.torchTakeCount = Math.min(state.resources.torches || 0, this.torchTakeCount);
+    const availableMeat = Math.max(0, Math.floor(state.resources.curedMeat || 0));
+    const availableTorches = Math.max(0, Math.floor(state.resources.torches || 0));
 
-    this.prepMeatText.setText(`${this.meatTakeCount} (庫存: ${Math.floor(state.resources.curedMeat || 0)})`);
-    this.prepTorchText.setText(`${this.torchTakeCount} (庫存: ${Math.floor(state.resources.torches || 0)})`);
+    this.meatTakeCount = Math.floor(Math.max(0, Math.min(availableMeat, this.meatTakeCount)));
+    this.torchTakeCount = Math.floor(Math.max(0, Math.min(availableTorches, this.torchTakeCount)));
+
+    this.prepMeatText.setText(`${this.meatTakeCount} (庫存: ${availableMeat})`);
+    this.prepTorchText.setText(`${this.torchTakeCount} (庫存: ${availableTorches})`);
 
     const maxWater = 10 + (state.resources.canteenLevel || 0) * 15;
     this.prepWaterText.setText(`水壺滿載容量：${maxWater} 單位 (遠征出發時自動裝滿清泉)`);
 
     let weaponName = '赤手空拳 (威力 2)';
-    if (state.resources.rifle > 0 && state.resources.bullets > 0) weaponName = `獵槍 (威力 25, 剩餘子彈 ${state.resources.bullets})`;
-    else if (state.resources.steelSword > 0) weaponName = '精鋼長劍 (威力 12)';
-    else if (state.resources.ironSword > 0) weaponName = '鋒利鐵劍 (威力 6)';
-    else if (state.resources.boneSpear > 0) weaponName = '獸骨長矛 (威力 3)';
+    if (state.resources.rifle > 0 && state.resources.bullets > 0) {
+      weaponName = `獵槍 (威力 25, 剩餘子彈 ${Math.floor(state.resources.bullets)})`;
+    } else if (state.resources.steelSword > 0) {
+      weaponName = '精鋼長劍 (威力 12)';
+    } else if (state.resources.ironSword > 0) {
+      weaponName = '鋒利鐵劍 (威力 6)';
+    } else if (state.resources.boneSpear > 0) {
+      weaponName = '獸骨長矛 (威力 3)';
+    }
 
     this.prepWeaponText.setText(`預計裝備武器：${weaponName}`);
     this.embarkBtn.setEnabled(true);
@@ -477,21 +485,20 @@ export class MapView extends Phaser.GameObjects.Container {
 
   private updateActiveMapDisplay(state: GameData): void {
     const exp = state.expedition;
-    this.hpText.setText(`生命值: ${exp.hp} / ${exp.maxHp}`);
-    this.waterText.setText(`水壺: ${exp.water} / ${exp.maxWater}`);
-    this.suppliesText.setText(`肉乾: ${exp.curedMeat} | 火把: ${exp.torches}`);
+    this.hpText.setText(`生命值: ${Math.floor(exp.hp)} / ${exp.maxHp}`);
+    this.waterText.setText(`水壺: ${Math.floor(exp.water)} / ${exp.maxWater}`);
+    this.suppliesText.setText(`肉乾: ${Math.floor(exp.curedMeat)} | 火把: ${Math.floor(exp.torches)}`);
 
     const weaponNames: Record<string, string> = {
       fists: '拳頭 (2)',
       boneSpear: '骨矛 (3)',
       ironSword: '鐵劍 (6)',
       steelSword: '鋼劍 (12)',
-      rifle: `步槍 (${exp.bullets})`
+      rifle: `步槍 (${Math.floor(exp.bullets)})`
     };
     this.weaponText.setText(`武器: ${weaponNames[exp.weapon] || '無'}`);
     this.locationText.setText(`座標: (${exp.x}, ${exp.y})`);
 
-    // Scavenge & Return button status
     const currentLandmark = MapSystem.getInstance().getLandmarkAt(exp.x, exp.y);
     const isCleared = currentLandmark ? state.clearedLandmarks.includes(currentLandmark.id) : false;
 
@@ -505,13 +512,12 @@ export class MapView extends Phaser.GameObjects.Container {
     const isAtHome = exp.x === SPAWN_POINT.x && exp.y === SPAWN_POINT.y;
     this.returnBtn.setVisible(isAtHome);
 
-    // Render 11x11 ASCII Grid
     this.renderAsciiMap(state);
   }
 
   private renderAsciiMap(state: GameData): void {
     const exp = state.expedition;
-    const viewRadius = 5; // 11x11
+    const viewRadius = 5;
     const lines: string[] = [];
 
     const landmarks = MapSystem.getInstance().getLandmarks();
@@ -528,7 +534,7 @@ export class MapView extends Phaser.GameObjects.Container {
         }
 
         if (dx === 0 && dy === 0) {
-          line += ' @ '; // Player
+          line += ' @ ';
           continue;
         }
 
@@ -536,7 +542,7 @@ export class MapView extends Phaser.GameObjects.Container {
         const isVisited = state.visitedTiles.includes(key);
 
         if (wx === SPAWN_POINT.x && wy === SPAWN_POINT.y) {
-          line += ' A '; // Village
+          line += ' A ';
         } else {
           const lm = landmarks.find((l) => l.x === wx && l.y === wy);
           if (lm) {
@@ -553,7 +559,7 @@ export class MapView extends Phaser.GameObjects.Container {
           } else if (isVisited) {
             line += ' . ';
           } else {
-            line += '   '; // Fog
+            line += '   ';
           }
         }
       }
@@ -568,7 +574,7 @@ export class MapView extends Phaser.GameObjects.Container {
     if (!enemy) return;
 
     this.combatEnemyName.setText(`遭遇敵人：${enemy.name}`);
-    this.combatEnemyHp.setText(`敵人生命值：${Math.max(0, enemy.hp)} / ${enemy.maxHp}`);
+    this.combatEnemyHp.setText(`敵人生命值：${Math.max(0, Math.floor(enemy.hp))} / ${enemy.maxHp}`);
 
     const logs = state.expedition.combatLog.slice(-4);
     this.combatLogText.setText(logs.join('\n'));
