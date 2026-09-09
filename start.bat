@@ -18,19 +18,26 @@ if not exist "node_modules" (
     )
 )
 
+set "GAME_URL=http://127.0.0.1:3000/"
+
 echo.
-echo Launching server at http://localhost:3000/
+echo Starting Vite server...
+start "A Dark Room Vite Server" /D "%~dp0" cmd /k "npm run dev"
+
+echo Waiting for the server...
+powershell -NoProfile -Command "Start-Sleep -Seconds 3"
+
+echo Server ready: %GAME_URL%
 echo Opening browser without proxy...
-echo.
 
 if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
-    start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --no-proxy-server "http://localhost:3000/"
+    start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --no-proxy-server "%GAME_URL%"
+) else if exist "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" (
+    start "" "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" --no-proxy-server "%GAME_URL%"
 ) else if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" (
-    start "" "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --no-proxy-server "http://localhost:3000/"
+    start "" "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --no-proxy-server "%GAME_URL%"
 ) else (
-    start http://localhost:3000/
+    start "" "%GAME_URL%"
 )
 
-call npm run dev
-
-pause
+exit /b 0
