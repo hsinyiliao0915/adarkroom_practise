@@ -47,12 +47,23 @@ export class RoomSystem {
     return true;
   }
 
+  private getFireMessage(fireState: FireState): string {
+    const fireMap: Record<FireState, string> = {
+      dead: '火堆熄滅了。',
+      smoldering: '火堆開始冒煙。',
+      flickering: '火堆冒出火苗。',
+      burning: '火堆燃燒著。',
+      roaring: '火堆熊熊燃燒。'
+    };
+    return fireMap[fireState] || '火堆燃燒著。';
+  }
+
   public stokeFire(state: GameData): boolean {
     // Before forest is unlocked, stoking is free (twigs/leaves)
     if (!state.unlockedForest) {
       state.fireFuel = Math.min(100, state.fireFuel + 30);
       this.updateFireState(state);
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '添了柴火。', 'info');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, this.getFireMessage(state.fireState), 'info');
       EventBus.getInstance().emit(Events.STATE_CHANGED);
       return true;
     }
@@ -63,7 +74,7 @@ export class RoomSystem {
         state.resources.wood -= 5;
         state.fireFuel = 60;
         state.fireState = 'burning';
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '用剩餘的木柴重新點燃了壁爐。', 'story');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '火堆燃燒著。', 'story');
         EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
         EventBus.getInstance().emit(Events.STATE_CHANGED);
         return true;
@@ -82,7 +93,7 @@ export class RoomSystem {
     state.fireFuel = Math.min(100, state.fireFuel + 25);
     this.updateFireState(state);
 
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, '添了柴火。', 'info');
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, this.getFireMessage(state.fireState), 'info');
     EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
@@ -132,7 +143,9 @@ export class RoomSystem {
         state.unlockedForest = true;
         state.unlockedTabs.forest = true;
         EventBus.getInstance().emit(Events.LOG_MESSAGE, '屋外寒風呼嘯。', 'story');
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '木材就快燒完了。', 'story');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '木頭就快燒完了。', 'story');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '天色陰沉，風無情地刮著。', 'story');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '林地上散落著枯枝敗葉。', 'story');
         EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'forest');
         EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
         EventBus.getInstance().emit(Events.STATE_CHANGED);
@@ -170,24 +183,33 @@ export class RoomSystem {
 
   private adjustWarmth(state: GameData): void {
     const warmthOrder: WarmthLevel[] = ['freezing', 'cold', 'mild', 'warm'];
+    const warmthMsg: Record<WarmthLevel, string> = {
+      freezing: '房間寒冷刺骨。',
+      cold: '房間很冷。',
+      mild: '房間很宜人。',
+      warm: '房間很暖和。'
+    };
     const currentIdx = warmthOrder.indexOf(state.warmthLevel);
+    const oldLevel = state.warmthLevel;
 
     if (state.fireState === 'dead') {
       if (currentIdx > 0) {
         state.warmthLevel = warmthOrder[currentIdx - 1];
-        EventBus.getInstance().emit(Events.STATE_CHANGED);
       }
     } else if (state.fireState === 'burning' || state.fireState === 'roaring') {
       if (currentIdx < warmthOrder.length - 1) {
         state.warmthLevel = warmthOrder[currentIdx + 1];
-        EventBus.getInstance().emit(Events.STATE_CHANGED);
       }
     } else if (state.fireState === 'flickering') {
       // Holds around mild
       if (currentIdx < 2) {
         state.warmthLevel = warmthOrder[currentIdx + 1];
-        EventBus.getInstance().emit(Events.STATE_CHANGED);
       }
+    }
+
+    if (state.warmthLevel !== oldLevel) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, warmthMsg[state.warmthLevel], 'story');
+      EventBus.getInstance().emit(Events.STATE_CHANGED);
     }
   }
 
