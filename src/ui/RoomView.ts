@@ -42,7 +42,7 @@ export class RoomView extends Phaser.GameObjects.Container {
 
     this.strangerText = scene.add.text(
       20,
-      48,
+      76,
       '',
       createTextStyle('13px', '#e2e8f0', false, {
         wordWrap: { width: width - 40, useAdvancedWrap: true }
@@ -183,6 +183,30 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.strangerText.setColor(theme.textPrimary);
     }
 
+    // Dynamic vertical layout: avoid any overlapping
+    let currentY = 20;
+
+    this.statusText.setY(currentY);
+    currentY += this.statusText.height + 8;
+
+    this.warmthText.setY(currentY);
+    currentY += this.warmthText.height + 10;
+
+    if (state.strangerState !== 'none' && this.strangerText.text.length > 0) {
+      this.strangerText.setY(currentY);
+      this.strangerText.setVisible(true);
+      currentY += this.strangerText.height + 20;
+    } else {
+      this.strangerText.setVisible(false);
+      currentY += 10;
+    }
+
+    // Fire button (button center Y is currentY + 19)
+    const fireBtnY = currentY + 19;
+    this.lightFireBtn.setY(fireBtnY);
+    this.stokeFireBtn.setY(fireBtnY);
+    currentY += 38 + 24;
+
     // Fire button logic
     if (state.fireState === 'dead') {
       this.lightFireBtn.setVisible(true);
@@ -203,6 +227,18 @@ export class RoomView extends Phaser.GameObjects.Container {
     this.hutBtn.setVisible(hasBuilder);
 
     if (hasBuilder) {
+      this.buildingsTitle.setY(currentY);
+      currentY += this.buildingsTitle.height + 16;
+
+      this.trapBtn.setY(currentY + 18);
+      currentY += 36 + 10;
+
+      this.cartBtn.setY(currentY + 18);
+      currentY += 36 + 10;
+
+      this.hutBtn.setY(currentY + 18);
+      currentY += 36 + 10;
+
       // Traps
       const trapCount = state.buildings.traps || 0;
       if (trapCount >= 10) {
@@ -220,8 +256,9 @@ export class RoomView extends Phaser.GameObjects.Container {
         this.cartBtn.setText('貨車 (已建造)');
         this.cartBtn.setEnabled(false);
       } else {
-        this.cartBtn.setText('貨車 (30 木材)');
-        this.cartBtn.setEnabled(state.resources.wood >= 30);
+        const cartCost = 30;
+        this.cartBtn.setText(`貨車 (${cartCost} 木材)`);
+        this.cartBtn.setEnabled(state.resources.wood >= cartCost);
       }
 
       // Huts
