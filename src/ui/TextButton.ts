@@ -62,11 +62,11 @@ export class TextButton extends Phaser.GameObjects.Container {
 
     this.add([this.bgRect, this.cooldownRect, this.borderRect, this.label]);
 
-    // Interactivity: define centered hitArea for origin 0.5 rectangle
-    this.bgRect.setInteractive(
-      new Phaser.Geom.Rectangle(-this.btnWidth / 2, -this.btnHeight / 2, this.btnWidth, this.btnHeight),
-      Phaser.Geom.Rectangle.Contains
-    );
+    this.setSize(this.btnWidth, this.btnHeight);
+
+    // Interactivity: bgRect origin is 0.5, Phaser automatically shifts local coords by displayOrigin
+    // Using default hitArea covers [0..btnWidth, 0..btnHeight], perfectly covering the entire button area
+    this.bgRect.setInteractive({ useHandCursor: true });
     this.bgRect.on('pointerover', this.onPointerOver, this);
     this.bgRect.on('pointerout', this.onPointerOut, this);
     this.bgRect.on('pointerdown', this.onPointerDown, this);

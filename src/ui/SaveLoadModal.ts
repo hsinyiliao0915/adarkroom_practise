@@ -35,6 +35,8 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     // 背景遮罩
     this.bgBackdrop = scene.add.rectangle(0, 0, cameraWidth, cameraHeight, theme.modalBackdropHex, theme.modalBackdropAlpha);
     this.bgBackdrop.setInteractive();
+    this.bgBackdrop.on('pointerdown', () => this.hide());
+    if (this.bgBackdrop.input) this.bgBackdrop.input.enabled = false;
 
     // 彈窗背景與邊框
     this.modalBg = scene.add.rectangle(0, 0, width, height, theme.modalBgHex, 0.98);
@@ -133,11 +135,13 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
 
   public show(scene: Phaser.Scene): void {
     this.setVisible(true);
+    if (this.bgBackdrop.input) this.bgBackdrop.input.enabled = true;
     this.refreshSlots(scene);
   }
 
   public hide(): void {
     this.setVisible(false);
+    if (this.bgBackdrop.input) this.bgBackdrop.input.enabled = false;
   }
 
   private refreshSlots(scene: Phaser.Scene): void {
