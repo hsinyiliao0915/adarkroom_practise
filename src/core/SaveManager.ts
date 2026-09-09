@@ -127,6 +127,13 @@ export class SaveManager {
       base.expedition.weapon = exp.weapon || 'fists';
       base.expedition.carriedLoot = exp.carriedLoot && typeof exp.carriedLoot === 'object' ? exp.carriedLoot : {};
       base.expedition.combatLog = Array.isArray(exp.combatLog) ? exp.combatLog.map(String) : [];
+      base.expedition.weaponCooldowns = exp.weaponCooldowns && typeof exp.weaponCooldowns === 'object'
+        ? Object.fromEntries(
+            Object.entries(exp.weaponCooldowns).map(([k, v]) => [k, cleanNum(v, 0)])
+          )
+        : {};
+      base.expedition.enemyAttackCooldown = cleanNum(exp.enemyAttackCooldown, 0);
+      base.expedition.enemyMaxAttackCooldown = cleanNum(exp.enemyMaxAttackCooldown, 0);
     }
 
     // 7. 日誌紀錄

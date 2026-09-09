@@ -88,6 +88,13 @@ export class VillageSystem {
           return false;
         }
       }
+      if (jobDef?.requiredLandmark) {
+        const hasCleared = state.clearedLandmarks.includes(jobDef.requiredLandmark);
+        if (!hasCleared) {
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, `需要先在荒野肅清對應礦坑才能指派【${jobDef.name}】。`, 'warn');
+          return false;
+        }
+      }
       if (free < delta) return false;
       state.workers[job] = current + delta;
     } else if (delta < 0) {

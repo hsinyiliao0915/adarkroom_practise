@@ -58,6 +58,8 @@ export interface Landmark {
   cleared: boolean;
   loot?: Partial<Resources>;
   description: string;
+  isOutpost?: boolean;
+  requiresTorch?: boolean;
 }
 
 export interface Enemy {
@@ -86,6 +88,9 @@ export interface ExpeditionState {
   inCombat: boolean;
   enemy: Enemy | null;
   combatLog: string[];
+  weaponCooldowns: Record<string, number>;
+  enemyAttackCooldown: number;
+  enemyMaxAttackCooldown: number;
 }
 
 export interface GameData {
@@ -232,7 +237,10 @@ export const INITIAL_GAME_DATA: GameData = {
     carriedLoot: {},
     inCombat: false,
     enemy: null,
-    combatLog: []
+    combatLog: [],
+    weaponCooldowns: {},
+    enemyAttackCooldown: 0,
+    enemyMaxAttackCooldown: 0
   },
 
   logs: [

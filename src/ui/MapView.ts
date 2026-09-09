@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GameData } from '../core/GameState';
-import { MapSystem, SPAWN_POINT } from '../systems/MapSystem';
+import { MapSystem, SPAWN_POINT, WEAPON_CONFIGS } from '../systems/MapSystem';
 import { TextButton } from './TextButton';
 import { createTextStyle } from '../config/typography';
 
@@ -24,20 +24,23 @@ export class MapView extends Phaser.GameObjects.Container {
   private locationText: Phaser.GameObjects.Text;
   private gridText: Phaser.GameObjects.Text;
 
-  // 移動與地標按鈕
+  // 移動與地標/補給按鈕
   private btnNorth: TextButton;
   private btnSouth: TextButton;
   private btnWest: TextButton;
   private btnEast: TextButton;
   private scavengeBtn: TextButton;
+  private eatMeatBtn: TextButton;
   private returnBtn: TextButton;
 
   // 戰鬥元件
   private combatContainer: Phaser.GameObjects.Container;
   private combatEnemyName: Phaser.GameObjects.Text;
   private combatEnemyHp: Phaser.GameObjects.Text;
+  private combatEnemyTimer: Phaser.GameObjects.Text;
   private combatLogText: Phaser.GameObjects.Text;
-  private attackBtn: TextButton;
+  private weaponButtons: Map<string, TextButton> = new Map();
+  private combatEatMeatBtn: TextButton;
   private fleeBtn: TextButton;
 
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -279,10 +282,10 @@ export class MapView extends Phaser.GameObjects.Container {
       onClick: () => this.tryMove(1, 0, scene)
     });
 
-    this.scavengeBtn = new TextButton(scene, 380, 240, {
+    this.scavengeBtn = new TextButton(scene, 380, 235, {
       text: '搜索此地標',
       width: 140,
-      height: 32,
+      height: 30,
       fontSize: '12px',
       onClick: () => {
         const state = (scene as any).gameState as GameData;
@@ -292,10 +295,23 @@ export class MapView extends Phaser.GameObjects.Container {
       }
     });
 
-    this.returnBtn = new TextButton(scene, 380, 280, {
+    this.eatMeatBtn = new TextButton(scene, 380, 270, {
+      text: '吃肉乾 (+10 HP)',
+      width: 140,
+      height: 30,
+      fontSize: '12px',
+      onClick: () => {
+        const state = (scene as any).gameState as GameData;
+        if (state) {
+          MapSystem.getInstance().eatCuredMeat(state);
+        }
+      }
+    });
+
+    this.returnBtn = new TextButton(scene, 380, 305, {
       text: '返回安全屋',
       width: 140,
-      height: 32,
+      height: 30,
       fontSize: '12px',
       onClick: () => {
         const state = (scene as any).gameState as GameData;
@@ -326,6 +342,7 @@ export class MapView extends Phaser.GameObjects.Container {
       this.btnWest,
       this.btnEast,
       this.scavengeBtn,
+      this.eatMeatBtn,
       this.returnBtn,
       legendText
     ]);
@@ -333,9 +350,9 @@ export class MapView extends Phaser.GameObjects.Container {
     // 3. 戰鬥面板
     this.combatContainer = scene.add.container(0, 0);
 
-    const combatBg = scene.add.rectangle(20, 50, 440, 300, 0x181014, 0.98);
+    const combatBg = scene.add.rectangle(20, 50, 440, 350, 0x181014, 0.98);
     combatBg.setOrigin(0);
-    const combatBorder = scene.add.rectangle(20, 50, 440, 300);
+    const combatBorder = scene.add.rectangle(20, 50, 440, 350);
     combatBorder.setStrokeStyle(2, 0xe11d48);
     combatBorder.setFillStyle(0x000000, 0);
     combatBorder.setOrigin(0);
@@ -357,28 +374,61 @@ export class MapView extends Phaser.GameObjects.Container {
     this.combatEnemyHp = scene.add.text(
       35,
       120,
-      '敵人生命值：12 / 12',
+      '生命值：12 / 12',
       createTextStyle('12px', '#fb7185')
     );
 
-    this.attackBtn = new TextButton(scene, 110, 165, {
-      text: '發動攻擊',
+    this.combatEnemyTimer = scene.add.text(
+      240,
+      120,
+      '敵人攻擊倒數: 0.0s',
+      createTextStyle('12px', '#f97316')
+    );
+
+    const weaponDefs = [
+      { id: 'fists', name: '赤手空拳', x: 110, y: 160 },
+      { id: 'boneSpear', name: '獸骨長矛', x: 270, y: 160 },
+      { id: 'ironSword', name: '鋒利鐵劍', x: 110, y: 198 },
+      { id: 'steelSword', name: '精鋼長劍', x: 270, y: 198 },
+      { id: 'rifle', name: '獵槍開火', x: 110, y: 236 }
+    ];
+
+    const weaponBtnList: TextButton[] = [];
+    weaponDefs.forEach((def) => {
+      const btn = new TextButton(scene, def.x, def.y, {
+        text: def.name,
+        width: 140,
+        height: 32,
+        fontSize: '12px',
+        onClick: () => {
+          const state = (scene as any).gameState as GameData;
+          if (state) {
+            MapSystem.getInstance().attackWithWeapon(state, def.id);
+          }
+        }
+      });
+      this.weaponButtons.set(def.id, btn);
+      weaponBtnList.push(btn);
+    });
+
+    this.combatEatMeatBtn = new TextButton(scene, 270, 236, {
+      text: '吃肉乾 (+10 HP)',
       width: 140,
-      height: 36,
-      fontSize: '13px',
+      height: 32,
+      fontSize: '12px',
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
-          MapSystem.getInstance().attackEnemy(state);
+          MapSystem.getInstance().eatCuredMeat(state);
         }
       }
     });
 
-    this.fleeBtn = new TextButton(scene, 270, 165, {
+    this.fleeBtn = new TextButton(scene, 190, 276, {
       text: '嘗試逃跑 (60%)',
-      width: 140,
-      height: 36,
-      fontSize: '13px',
+      width: 160,
+      height: 32,
+      fontSize: '12px',
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
@@ -389,7 +439,7 @@ export class MapView extends Phaser.GameObjects.Container {
 
     this.combatLogText = scene.add.text(
       35,
-      205,
+      315,
       '',
       createTextStyle('11px', '#cbd5e1', false, {
         lineSpacing: 4,
@@ -403,7 +453,9 @@ export class MapView extends Phaser.GameObjects.Container {
       combatTitle,
       this.combatEnemyName,
       this.combatEnemyHp,
-      this.attackBtn,
+      this.combatEnemyTimer,
+      ...weaponBtnList,
+      this.combatEatMeatBtn,
       this.fleeBtn,
       this.combatLogText
     ]);
@@ -509,6 +561,10 @@ export class MapView extends Phaser.GameObjects.Container {
       this.scavengeBtn.setVisible(false);
     }
 
+    const canEatMeat = exp.curedMeat > 0 && exp.hp < exp.maxHp;
+    this.eatMeatBtn.setEnabled(canEatMeat);
+    this.eatMeatBtn.setText(`吃肉乾 (+10 HP, 剩 ${Math.floor(exp.curedMeat)})`);
+
     const isAtHome = exp.x === SPAWN_POINT.x && exp.y === SPAWN_POINT.y;
     this.returnBtn.setVisible(isAtHome);
 
@@ -540,6 +596,7 @@ export class MapView extends Phaser.GameObjects.Container {
 
         const key = `${wx},${wy}`;
         const isVisited = state.visitedTiles.includes(key);
+        const dist = Math.max(Math.abs(dx), Math.abs(dy));
 
         if (wx === SPAWN_POINT.x && wy === SPAWN_POINT.y) {
           line += ' A ';
@@ -555,7 +612,13 @@ export class MapView extends Phaser.GameObjects.Container {
               cave: ' X ',
               crashed_starship: ' ★ '
             };
-            line += isVisited ? symMap[lm.type] || ' ? ' : ' · ';
+            if (isVisited) {
+              line += symMap[lm.type] || ' ? ';
+            } else if (dist <= 2) {
+              line += ' ? ';
+            } else {
+              line += '   ';
+            }
           } else if (isVisited) {
             line += ' . ';
           } else {
@@ -571,32 +634,81 @@ export class MapView extends Phaser.GameObjects.Container {
 
   private updateCombatDisplay(state: GameData): void {
     const enemy = state.expedition.enemy;
-    if (!enemy) return;
+    if (!enemy || !state.expedition.inCombat) {
+      this.combatContainer.setVisible(false);
+      return;
+    }
 
+    this.combatContainer.setVisible(true);
     this.combatEnemyName.setText(`遭遇敵人：${enemy.name}`);
-    this.combatEnemyHp.setText(`敵人生命值：${Math.max(0, Math.floor(enemy.hp))} / ${enemy.maxHp}`);
+    this.combatEnemyHp.setText(`生命值：${Math.max(0, Math.floor(enemy.hp))} / ${enemy.maxHp}`);
 
-    const logs = state.expedition.combatLog.slice(-4);
+    const enemyCd = Math.max(0, state.expedition.enemyAttackCooldown || 0);
+    this.combatEnemyTimer.setText(`敵人攻擊: ${(enemyCd / 1000).toFixed(1)}s`);
+
+    const exp = state.expedition;
+    const cooldowns = exp.weaponCooldowns || {};
+
+    this.weaponButtons.forEach((btn, weaponId) => {
+      const cfg = WEAPON_CONFIGS[weaponId];
+      if (!cfg) return;
+
+      let hasWeapon = false;
+      if (weaponId === 'fists') hasWeapon = true;
+      else if (cfg.requiredResource && (state.resources[cfg.requiredResource] || 0) > 0) hasWeapon = true;
+
+      btn.setVisible(hasWeapon);
+      if (!hasWeapon) return;
+
+      const cd = cooldowns[weaponId] || 0;
+      if (cd > 0) {
+        btn.setEnabled(false);
+        btn.setText(`${cfg.name} (${(cd / 1000).toFixed(1)}s)`);
+      } else if (cfg.requiresBullet && (exp.bullets || 0) < 1) {
+        btn.setEnabled(false);
+        btn.setText(`${cfg.name} (無彈藥)`);
+      } else {
+        btn.setEnabled(true);
+        if (cfg.requiresBullet) {
+          btn.setText(`${cfg.name} (${Math.floor(exp.bullets)}彈)`);
+        } else {
+          btn.setText(`${cfg.name} (${cfg.damage}傷)`);
+        }
+      }
+    });
+
+    const canEatMeat = (exp.curedMeat || 0) > 0 && exp.hp < exp.maxHp;
+    this.combatEatMeatBtn.setEnabled(canEatMeat);
+    this.combatEatMeatBtn.setText(`吃肉乾 (+10HP, 剩${Math.floor(exp.curedMeat)})`);
+
+    const logs = exp.combatLog.slice(-3);
     this.combatLogText.setText(logs.join('\n'));
   }
 
   public update(delta: number): void {
-    this.moveCooldown -= delta;
-
-    if (this.moveCooldown <= 0) {
-      if (this.cursors && this.wasdKeys) {
-        if (this.cursors.up.isDown || this.wasdKeys.W.isDown) {
-          this.tryMove(0, -1, this.scene);
-          this.moveCooldown = 220;
-        } else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) {
-          this.tryMove(0, 1, this.scene);
-          this.moveCooldown = 220;
-        } else if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
-          this.tryMove(-1, 0, this.scene);
-          this.moveCooldown = 220;
-        } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
-          this.tryMove(1, 0, this.scene);
-          this.moveCooldown = 220;
+    const state = (this.scene as any).gameState as GameData;
+    if (state && state.expedition.active) {
+      if (state.expedition.inCombat) {
+        MapSystem.getInstance().updateCombat(delta, state);
+        this.updateCombatDisplay(state);
+      } else {
+        this.moveCooldown -= delta;
+        if (this.moveCooldown <= 0) {
+          if (this.cursors && this.wasdKeys) {
+            if (this.cursors.up.isDown || this.wasdKeys.W.isDown) {
+              this.tryMove(0, -1, this.scene);
+              this.moveCooldown = 220;
+            } else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) {
+              this.tryMove(0, 1, this.scene);
+              this.moveCooldown = 220;
+            } else if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
+              this.tryMove(-1, 0, this.scene);
+              this.moveCooldown = 220;
+            } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
+              this.tryMove(1, 0, this.scene);
+              this.moveCooldown = 220;
+            }
+          }
         }
       }
     }

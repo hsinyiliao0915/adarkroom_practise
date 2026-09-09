@@ -5,6 +5,23 @@ import { EventBus, Events } from '../core/EventBus';
 export const MAP_SIZE = 41;
 export const SPAWN_POINT = { x: 20, y: 20 };
 
+export interface WeaponConfig {
+  id: 'fists' | 'boneSpear' | 'ironSword' | 'steelSword' | 'rifle';
+  name: string;
+  damage: number;
+  cooldownMs: number;
+  requiresBullet?: boolean;
+  requiredResource?: keyof Resources;
+}
+
+export const WEAPON_CONFIGS: Record<string, WeaponConfig> = {
+  fists: { id: 'fists', name: '拳頭', damage: 2, cooldownMs: 2000 },
+  boneSpear: { id: 'boneSpear', name: '獸骨長矛', damage: 4, cooldownMs: 1500, requiredResource: 'boneSpear' },
+  ironSword: { id: 'ironSword', name: '鋒利鐵劍', damage: 8, cooldownMs: 2500, requiredResource: 'ironSword' },
+  steelSword: { id: 'steelSword', name: '精鋼長劍', damage: 14, cooldownMs: 2500, requiredResource: 'steelSword' },
+  rifle: { id: 'rifle', name: '獵槍', damage: 30, cooldownMs: 4000, requiresBullet: true, requiredResource: 'rifle' }
+};
+
 export class MapSystem {
   private static instance: MapSystem;
   private landmarks: Landmark[] = [];
@@ -41,7 +58,8 @@ export class MapSystem {
         y: 17,
         cleared: false,
         loot: { curedMeat: 10, leather: 15, torches: 3 },
-        description: '一座倒塌的舊時代聚落，在廢墟斷垣間搜刮到了珍貴的物資。'
+        description: '一座倒塌的舊時代聚落，在廢墟斷垣間搜刮到了珍貴的物資。',
+        isOutpost: true
       },
       {
         id: 'coal_mine_1',
@@ -61,7 +79,8 @@ export class MapSystem {
         y: 24,
         cleared: false,
         loot: { steel: 30, bullets: 25, rifle: 1 },
-        description: '用鋼筋混凝土加固的舊哨站，重型軍械箱中依然保存著步槍與軍規鋼材。'
+        description: '用鋼筋混凝土加固的舊哨站，重型軍械箱中依然保存著步槍與軍規鋼材。',
+        isOutpost: true
       },
       {
         id: 'ruined_city_1',
@@ -81,7 +100,8 @@ export class MapSystem {
         y: 15,
         cleared: false,
         loot: { teeth: 20, scales: 15, curedMeat: 12 },
-        description: '深不見底的天然鐘乳石洞，盤踞著巨大的變異野獸群。'
+        description: '深不見底的天然鐘乳石洞，盤踞著巨大的變異野獸群。',
+        requiresTorch: true
       },
       {
         id: 'crashed_starship',
@@ -143,7 +163,10 @@ export class MapSystem {
       carriedLoot: {},
       inCombat: false,
       enemy: null,
-      combatLog: []
+      combatLog: [],
+      weaponCooldowns: {},
+      enemyAttackCooldown: 0,
+      enemyMaxAttackCooldown: 0
     };
 
     if (!state.visitedTiles.includes(`${SPAWN_POINT.x},${SPAWN_POINT.y}`)) {
@@ -179,19 +202,25 @@ export class MapSystem {
       state.visitedTiles.push(key);
     }
 
-    // Water & Food Consumption per step
+    // Water Consumption per step
     if (state.expedition.water > 0) {
       state.expedition.water -= 1;
-    } else if (state.expedition.curedMeat > 0) {
-      state.expedition.curedMeat -= 1;
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '水壺乾涸了，你吃下一塊肉乾以緩解疲憊。', 'warn');
     } else {
-      // Starving / Dehydrated
+      // Dehydrated
       state.expedition.hp -= 2;
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '極度乾渴與飢餓正在侵蝕你的體力！(-2 生命值)', 'warn');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '水壺乾涸了，極度乾渴正在侵蝕你的體力！(-2 生命值)', 'warn');
       if (state.expedition.hp <= 0) {
         this.dieInWilderness(state);
         return false;
+      }
+    }
+
+    // Outpost water replenishment
+    const currentLm = this.getLandmarkAt(newX, newY);
+    if (currentLm && currentLm.isOutpost && state.clearedLandmarks.includes(currentLm.id)) {
+      if (state.expedition.water < state.expedition.maxWater) {
+        state.expedition.water = state.expedition.maxWater;
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, `你在【${currentLm.name}】前哨站清泉旁歇息，水壺已全部裝滿。`, 'info');
       }
     }
 
@@ -214,11 +243,42 @@ export class MapSystem {
     return true;
   }
 
+  public eatCuredMeat(state: GameData): boolean {
+    if (!state.expedition.active) return false;
+    if (state.expedition.curedMeat <= 0) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '背包中沒有肉乾了。', 'warn');
+      return false;
+    }
+    if (state.expedition.hp >= state.expedition.maxHp) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '你的生命值已是全滿狀態。', 'info');
+      return false;
+    }
+
+    state.expedition.curedMeat -= 1;
+    const healAmount = 10;
+    state.expedition.hp = Math.min(state.expedition.maxHp, state.expedition.hp + healAmount);
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, `你吃下一塊肉乾，恢復了 ${healAmount} 點生命值。(當前: ${state.expedition.hp}/${state.expedition.maxHp})`, 'story');
+    if (state.expedition.inCombat) {
+      state.expedition.combatLog.push(`吃下肉乾，恢復了 ${healAmount} 點生命值！`);
+    }
+    EventBus.getInstance().emit(Events.STATE_CHANGED);
+    return true;
+  }
+
   public scavengeLandmark(state: GameData): void {
     if (!state.expedition.active || state.expedition.inCombat) return;
 
     const landmark = this.getLandmarkAt(state.expedition.x, state.expedition.y);
     if (!landmark || state.clearedLandmarks.includes(landmark.id)) return;
+
+    if (landmark.requiresTorch) {
+      if ((state.expedition.torches || 0) < 1) {
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, `【${landmark.name}】深處漆黑一片，需要攜帶火把才能進入探索。`, 'warn');
+        return;
+      }
+      state.expedition.torches -= 1;
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, `你點燃了一支火把照亮深邃通道。(-1 火把)`, 'info');
+    }
 
     if (landmark.loot) {
       for (const [key, amount] of Object.entries(landmark.loot)) {
@@ -229,6 +289,12 @@ export class MapSystem {
 
     state.clearedLandmarks.push(landmark.id);
     EventBus.getInstance().emit(Events.LOG_MESSAGE, `你搜索了【${landmark.name}】，搜颳到了豐富的戰利品並放入背包！`, 'story');
+
+    if (landmark.isOutpost) {
+      state.expedition.water = state.expedition.maxWater;
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, `此處已被建立為前哨基地，水壺已全部裝滿！`, 'story');
+    }
+
     EventBus.getInstance().emit(Events.STATE_CHANGED);
   }
 
@@ -255,41 +321,75 @@ export class MapSystem {
       loot: { ...template.loot }
     };
 
+    const interval = Math.max(800, Math.round(3000 / enemy.speed));
     state.expedition.inCombat = true;
     state.expedition.enemy = enemy;
+    state.expedition.enemyAttackCooldown = interval;
+    state.expedition.enemyMaxAttackCooldown = interval;
+    state.expedition.weaponCooldowns = {};
     state.expedition.combatLog = [`遭遇了【${enemy.name}】！進入戰鬥。`];
 
     EventBus.getInstance().emit(Events.LOG_MESSAGE, `荒野中竄出了【${enemy.name}】！`, 'warn');
     EventBus.getInstance().emit(Events.COMBAT_EVENT);
+    EventBus.getInstance().emit(Events.STATE_CHANGED);
   }
 
-  public attackEnemy(state: GameData): void {
-    if (!state.expedition.inCombat || !state.expedition.enemy) return;
+  public updateCombat(delta: number, state: GameData): void {
+    if (!state.expedition.active || !state.expedition.inCombat || !state.expedition.enemy) return;
 
-    const enemy = state.expedition.enemy;
-    let playerDmg = 2; // Fists
-
-    if (state.expedition.weapon === 'rifle' && state.expedition.bullets > 0) {
-      playerDmg = 25;
-      state.expedition.bullets -= 1;
-      state.resources.bullets = Math.max(0, state.resources.bullets - 1);
-    } else if (state.expedition.weapon === 'steelSword') {
-      playerDmg = 12;
-    } else if (state.expedition.weapon === 'ironSword') {
-      playerDmg = 6;
-    } else if (state.expedition.weapon === 'boneSpear') {
-      playerDmg = 3;
+    // Player weapon cooldowns
+    if (!state.expedition.weaponCooldowns) state.expedition.weaponCooldowns = {};
+    for (const k of Object.keys(state.expedition.weaponCooldowns)) {
+      state.expedition.weaponCooldowns[k] = Math.max(0, state.expedition.weaponCooldowns[k] - delta);
     }
 
-    enemy.hp -= playerDmg;
-    state.expedition.combatLog.push(`你發動攻擊，對【${enemy.name}】造成 ${playerDmg} 點傷害！`);
+    // Enemy attack timer
+    state.expedition.enemyAttackCooldown -= delta;
+    if (state.expedition.enemyAttackCooldown <= 0) {
+      state.expedition.enemyAttackCooldown = state.expedition.enemyMaxAttackCooldown;
+      const enemy = state.expedition.enemy;
+      if (Math.random() < enemy.accuracy) {
+        state.expedition.hp -= enemy.attack;
+        state.expedition.combatLog.push(`【${enemy.name}】向你撲來，造成 ${enemy.attack} 點傷害！`);
+      } else {
+        state.expedition.combatLog.push(`【${enemy.name}】的攻擊落空了！`);
+      }
+
+      if (state.expedition.hp <= 0) {
+        this.dieInWilderness(state);
+        return;
+      }
+      EventBus.getInstance().emit(Events.STATE_CHANGED);
+    }
+  }
+
+  public attackWithWeapon(state: GameData, weaponId: string): boolean {
+    if (!state.expedition.inCombat || !state.expedition.enemy) return false;
+    const config = WEAPON_CONFIGS[weaponId];
+    if (!config) return false;
+
+    if ((state.expedition.weaponCooldowns?.[weaponId] || 0) > 0) return false;
+
+    if (config.requiresBullet) {
+      if ((state.expedition.bullets || 0) < 1) {
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '彈藥耗盡，無法開火！', 'warn');
+        return false;
+      }
+      state.expedition.bullets -= 1;
+      state.resources.bullets = Math.max(0, state.resources.bullets - 1);
+    }
+
+    const enemy = state.expedition.enemy;
+    enemy.hp -= config.damage;
+    if (!state.expedition.weaponCooldowns) state.expedition.weaponCooldowns = {};
+    state.expedition.weaponCooldowns[weaponId] = config.cooldownMs;
+    state.expedition.combatLog.push(`你使用【${config.name}】攻擊，造成 ${config.damage} 點傷害！`);
 
     // Enemy dead
     if (enemy.hp <= 0) {
       state.expedition.inCombat = false;
       state.expedition.combatLog.push(`【${enemy.name}】倒下了！戰鬥勝利。`);
 
-      // Loot
       for (const [key, amount] of Object.entries(enemy.loot)) {
         const k = key as keyof Resources;
         state.expedition.carriedLoot[k] = (state.expedition.carriedLoot[k] || 0) + (amount || 0);
@@ -298,24 +398,28 @@ export class MapSystem {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, `擊敗了【${enemy.name}】，獲得了戰利品。`, 'info');
       state.expedition.enemy = null;
       EventBus.getInstance().emit(Events.STATE_CHANGED);
-      return;
-    }
-
-    // Enemy counter-attack
-    if (Math.random() < enemy.accuracy) {
-      state.expedition.hp -= enemy.attack;
-      state.expedition.combatLog.push(`【${enemy.name}】向你撲來，造成 ${enemy.attack} 點傷害！`);
-    } else {
-      state.expedition.combatLog.push(`【${enemy.name}】的攻擊落空了！`);
-    }
-
-    // Player dead
-    if (state.expedition.hp <= 0) {
-      this.dieInWilderness(state);
-      return;
+      return true;
     }
 
     EventBus.getInstance().emit(Events.STATE_CHANGED);
+    return true;
+  }
+
+  public attackEnemy(state: GameData): void {
+    if (!state.expedition.inCombat || !state.expedition.enemy) return;
+
+    // Pick best ready weapon for compatibility
+    const candidates = ['rifle', 'steelSword', 'ironSword', 'boneSpear', 'fists'];
+    for (const w of candidates) {
+      const cfg = WEAPON_CONFIGS[w];
+      if (!cfg) continue;
+      if (cfg.requiredResource && (state.resources[cfg.requiredResource] || 0) <= 0) continue;
+      if (cfg.requiresBullet && (state.expedition.bullets || 0) <= 0) continue;
+      if ((state.expedition.weaponCooldowns?.[w] || 0) <= 0) {
+        this.attackWithWeapon(state, w);
+        return;
+      }
+    }
   }
 
   public fleeCombat(state: GameData): boolean {
@@ -368,6 +472,9 @@ export class MapSystem {
     state.expedition.enemy = null;
     state.expedition.carriedLoot = {};
     state.expedition.combatLog = [];
+    state.expedition.weaponCooldowns = {};
+    state.expedition.enemyAttackCooldown = 0;
+    state.expedition.enemyMaxAttackCooldown = 0;
 
     EventBus.getInstance().emit(Events.LOG_MESSAGE, `你平安返回了聚落！卸下了所有探索獲得的物資。`, 'story');
     EventBus.getInstance().emit(Events.STATE_CHANGED);
@@ -386,6 +493,9 @@ export class MapSystem {
     state.expedition.enemy = null;
     state.expedition.carriedLoot = {};
     state.expedition.combatLog = [];
+    state.expedition.weaponCooldowns = {};
+    state.expedition.enemyAttackCooldown = 0;
+    state.expedition.enemyMaxAttackCooldown = 0;
 
     EventBus.getInstance().emit(Events.LOG_MESSAGE, '你在殘酷的荒野中倒下了...背包中的所有戰利品遺失，你被村民救回了小黑屋。', 'warn');
     EventBus.getInstance().emit(Events.STATE_CHANGED);

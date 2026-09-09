@@ -14,6 +14,7 @@ export class RoomView extends Phaser.GameObjects.Container {
   private stokeFireBtn: TextButton;
   private gatherWoodBtn: TextButton;
   private checkTrapsBtn: TextButton;
+  private baitTrapsBtn: TextButton;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 490) {
     super(scene, x, y);
@@ -100,6 +101,21 @@ export class RoomView extends Phaser.GameObjects.Container {
       }
     });
 
+    // 5. Bait Traps
+    this.baitTrapsBtn = new TextButton(scene, 130, btnY + 225, {
+      text: '為陷阱投放誘餌 (1 生肉)',
+      width: 220,
+      height: 34,
+      fontSize: '12px',
+      cooldownMs: 1000,
+      onClick: () => {
+        const state = (scene as any).gameState as GameData;
+        if (state) {
+          ResourceSystem.getInstance().baitTraps(state, 1);
+        }
+      }
+    });
+
     this.add([
       this.statusText,
       this.warmthText,
@@ -107,7 +123,8 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.lightFireBtn,
       this.stokeFireBtn,
       this.gatherWoodBtn,
-      this.checkTrapsBtn
+      this.checkTrapsBtn,
+      this.baitTrapsBtn
     ]);
 
     scene.add.existing(this);
@@ -160,11 +177,20 @@ export class RoomView extends Phaser.GameObjects.Container {
 
     this.gatherWoodBtn.setVisible(state.unlockedForest || state.fireState !== 'dead');
     this.checkTrapsBtn.setVisible(state.buildings.traps > 0);
+
+    const hasTraps = state.buildings.traps > 0;
+    this.baitTrapsBtn.setVisible(hasTraps);
+    if (hasTraps) {
+      const baitCount = state.trapBaitMeat || 0;
+      this.baitTrapsBtn.setText(`投放誘餌 (現有: ${baitCount})`);
+      this.baitTrapsBtn.setEnabled(state.resources.meat >= 1);
+    }
   }
 
   public update(delta: number): void {
     this.stokeFireBtn.update(delta);
     this.gatherWoodBtn.update(delta);
     this.checkTrapsBtn.update(delta);
+    this.baitTrapsBtn.update(delta);
   }
 }

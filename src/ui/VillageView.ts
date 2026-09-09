@@ -23,6 +23,8 @@ interface WorkerRow {
 
 export class VillageView extends Phaser.GameObjects.Container {
   private popSummaryText: Phaser.GameObjects.Text;
+  private bTitle: Phaser.GameObjects.Text;
+  private wTitle: Phaser.GameObjects.Text;
   private buildingRows: BuildingRow[] = [];
   private workerRows: WorkerRow[] = [];
 
@@ -39,13 +41,13 @@ export class VillageView extends Phaser.GameObjects.Container {
     this.add(this.popSummaryText);
 
     // Section 1: Buildings
-    const bTitle = scene.add.text(
+    this.bTitle = scene.add.text(
       20,
       42,
       '── 聚落建築 ──',
       createTextStyle('12px', '#94a3b8')
     );
-    this.add(bTitle);
+    this.add(this.bTitle);
 
     const startY = 65;
     BUILDING_RECIPES.forEach((recipe, idx) => {
@@ -90,13 +92,13 @@ export class VillageView extends Phaser.GameObjects.Container {
 
     // Section 2: Worker Allocation
     const wTitleY = startY + BUILDING_RECIPES.length * 36 + 10;
-    const wTitle = scene.add.text(
+    this.wTitle = scene.add.text(
       20,
       wTitleY,
       '── 人口工作指派 ──',
       createTextStyle('12px', '#94a3b8')
     );
-    this.add(wTitle);
+    this.add(this.wTitle);
 
     const workerStartY = wTitleY + 22;
     WORKER_JOBS.forEach((job, idx) => {
@@ -169,6 +171,9 @@ export class VillageView extends Phaser.GameObjects.Container {
     const maxPop = VillageSystem.getInstance().getMaxPopulation(state);
     this.popSummaryText.setText(`聚落人口：${state.population} / ${maxPop} 人 (閒置村民：${free} 人)`);
 
+    const startY = 65;
+    let bIdx = 0;
+
     this.buildingRows.forEach((row) => {
       const recipe = BUILDING_RECIPES.find((r) => r.id === row.id);
       if (!recipe) return;
@@ -176,6 +181,23 @@ export class VillageView extends Phaser.GameObjects.Container {
       const current = state.buildings[row.id] || 0;
       const isMaxed = recipe.maxCount !== undefined && current >= recipe.maxCount;
       const costs = recipe.cost(current);
+
+      let isUnlocked = true;
+      if (recipe.unlockRequirement) {
+        isUnlocked = current > 0 || recipe.unlockRequirement(state.buildings, state.resources);
+      }
+
+      row.nameText.setVisible(isUnlocked);
+      row.costText.setVisible(isUnlocked);
+      row.buildBtn.setVisible(isUnlocked);
+
+      if (!isUnlocked) return;
+
+      const rowY = startY + bIdx * 34;
+      row.nameText.setY(rowY);
+      row.costText.setY(rowY + 2);
+      row.buildBtn.setY(rowY + 8);
+      bIdx++;
 
       const costParts: string[] = [];
       let canAfford = true;
@@ -201,6 +223,14 @@ export class VillageView extends Phaser.GameObjects.Container {
       }
     });
 
+    const wTitleY = startY + bIdx * 34 + 14;
+    this.wTitle.setY(wTitleY);
+    const showWorkerSection = state.population > 0 || state.buildings.huts > 0;
+    this.wTitle.setVisible(showWorkerSection);
+
+    let wIdx = 0;
+    const workerStartY = wTitleY + 22;
+
     this.workerRows.forEach((row) => {
       const job = WORKER_JOBS.find((j) => j.id === row.id);
       if (!job) return;
@@ -208,9 +238,12 @@ export class VillageView extends Phaser.GameObjects.Container {
       const current = state.workers[row.id] || 0;
       row.countText.setText(current.toString().padStart(2, ' '));
 
-      let isUnlocked = true;
+      let isUnlocked = showWorkerSection;
       if (job.requiredBuilding) {
-        isUnlocked = (state.buildings[job.requiredBuilding] || 0) > 0;
+        isUnlocked = isUnlocked && (state.buildings[job.requiredBuilding] || 0) > 0;
+      }
+      if (job.requiredLandmark) {
+        isUnlocked = isUnlocked && state.clearedLandmarks.includes(job.requiredLandmark);
       }
 
       row.nameText.setVisible(isUnlocked);
@@ -219,11 +252,19 @@ export class VillageView extends Phaser.GameObjects.Container {
       row.plusBtn.setVisible(isUnlocked);
       row.descText.setVisible(isUnlocked);
 
-      if (isUnlocked) {
-        row.minusBtn.setEnabled(current > 0);
-        row.plusBtn.setEnabled(free > 0);
-        row.descText.setText(job.description);
-      }
+      if (!isUnlocked) return;
+
+      const rowY = workerStartY + wIdx * 30;
+      row.nameText.setY(rowY);
+      row.minusBtn.setY(rowY + 6);
+      row.countText.setY(rowY + 1);
+      row.plusBtn.setY(rowY + 6);
+      row.descText.setY(rowY + 2);
+      wIdx++;
+
+      row.minusBtn.setEnabled(current > 0);
+      row.plusBtn.setEnabled(free > 0);
+      row.descText.setText(job.description);
     });
   }
 

@@ -16,6 +16,7 @@ export interface WorkerJob {
   production: Partial<Record<keyof Resources, number>>; // Per 10 seconds per worker
   consumption: Partial<Record<keyof Resources, number>>; // Per 10 seconds per worker
   requiredBuilding?: keyof Buildings;
+  requiredLandmark?: string;
 }
 
 export interface CraftRecipe {
@@ -147,18 +148,20 @@ export const WORKER_JOBS: WorkerJob[] = [
   {
     id: 'ironMiners',
     name: '鐵礦工 (Iron Miner)',
-    description: '在鐵礦坑開採鐵礦。',
+    description: '在鐵礦坑開採鐵礦（需先在荒野肅清廢棄鐵礦坑）。',
     production: { iron: 2 },
     consumption: { curedMeat: 1 },
-    requiredBuilding: 'workshop'
+    requiredBuilding: 'workshop',
+    requiredLandmark: 'iron_mine_1'
   },
   {
     id: 'coalMiners',
     name: '煤礦工 (Coal Miner)',
-    description: '在煤礦坑開採煤炭。',
+    description: '在煤礦坑開採煤炭（需先在荒野肅清黑石煤礦）。',
     production: { coal: 2 },
     consumption: { curedMeat: 1 },
-    requiredBuilding: 'furnace'
+    requiredBuilding: 'furnace',
+    requiredLandmark: 'coal_mine_1'
   },
   {
     id: 'steelworkers',
@@ -190,16 +193,15 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
   {
     id: 'cart',
     name: '推車 (Cart)',
-    description: '手推推車，提升每次手動伐木獲得的木材量 (+10)。',
-    cost: { wood: 50, leather: 10 },
+    description: '手推推車，大幅提升手動伐木獲得的木材量 (每次採集 50 木材)。',
+    cost: { wood: 30 },
     maxCount: 1,
-    isEquipment: true,
-    requiresWorkshop: true
+    isEquipment: true
   },
   {
     id: 'wagon',
     name: '大型貨車 (Wagon)',
-    description: '大幅提升手動伐木獲取量 (+30)。',
+    description: '大幅提升手動伐木獲取量 (每次採集 100 木材)。',
     cost: { wood: 300, iron: 50 },
     maxCount: 1,
     isEquipment: true,
@@ -208,11 +210,10 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
   {
     id: 'compass',
     name: '指南針 (Compass)',
-    description: '鏽蝕但依然靈敏的磁針，解鎖荒野「大地圖探索」路線。',
-    cost: { scales: 20, teeth: 10, iron: 15 },
+    description: '靈敏的磁針，解鎖荒野「大地圖探索」路線。',
+    cost: { scales: 15, teeth: 10, fur: 30 },
     maxCount: 1,
-    isEquipment: true,
-    requiresWorkshop: true
+    isEquipment: true
   },
   {
     id: 'boneSpear',
