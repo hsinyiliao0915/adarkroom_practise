@@ -79,13 +79,13 @@ export class RoomSystem {
         EventBus.getInstance().emit(Events.STATE_CHANGED);
         return true;
       } else {
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '木材不夠生火了。', 'warn');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '木頭不夠了。', 'warn');
         return false;
       }
     }
 
     if (state.resources.wood < 1) {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '木材用光了。', 'warn');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '木頭不夠了。', 'warn');
       return false;
     }
 
@@ -174,6 +174,8 @@ export class RoomSystem {
           state.unlockedBuilder = true;
           state.unlockedTabs.village = true;
           EventBus.getInstance().emit(Events.LOG_MESSAGE, '那名陌生人站在火堆旁。她說她可以幫忙。她說她會建造東西。', 'story');
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '建造者說她能夠製作陷阱來捕捉那些仍在野外活動的野獸。', 'story');
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '建造者說她能夠製造出貨車，用來運載木頭。', 'story');
           EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'village');
           EventBus.getInstance().emit(Events.STATE_CHANGED);
         }
@@ -187,7 +189,7 @@ export class RoomSystem {
       freezing: '房間寒冷刺骨。',
       cold: '房間很冷。',
       mild: '房間很宜人。',
-      warm: '房間很暖和。'
+      warm: '房間很熱。'
     };
     const currentIdx = warmthOrder.indexOf(state.warmthLevel);
     const oldLevel = state.warmthLevel;

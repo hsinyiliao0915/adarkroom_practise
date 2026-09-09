@@ -47,7 +47,7 @@ export class VillageSystem {
     // Check afford
     for (const [resKey, amount] of Object.entries(costs)) {
       if ((state.resources[resKey as keyof Resources] || 0) < amount) {
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '資源不足，無法建造。', 'warn');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '木頭不夠了。', 'warn');
         return false;
       }
     }
@@ -70,7 +70,13 @@ export class VillageSystem {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '工作坊建造完成，解鎖了【製造】功能。', 'story');
     }
 
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, `成功建造了【${recipe.name}】。`, 'info');
+    if (buildingId === 'traps') {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱越多，抓到的獵物就越多。', 'story');
+    } else if (buildingId === 'huts') {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '建造了簡陋的小屋，能為更多流浪者遮風避雨。', 'story');
+    } else {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, `成功建造了【${recipe.name}】。`, 'info');
+    }
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
   }

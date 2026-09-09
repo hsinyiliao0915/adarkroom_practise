@@ -38,7 +38,7 @@ export class CraftSystem {
     // Check afford
     for (const [resKey, amount] of Object.entries(recipe.cost)) {
       if ((state.resources[resKey as keyof Resources] || 0) < amount) {
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '資源不足，無法製作。', 'warn');
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, resKey === 'wood' ? '木頭不夠了。' : '資源不足，無法製作。', 'warn');
         return false;
       }
     }
@@ -59,7 +59,11 @@ export class CraftSystem {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '指南針指示了方向，荒野【大地圖探索】已解鎖！', 'story');
     }
 
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, `成功製作了【${recipe.name}】。`, 'info');
+    if (recipeId === 'cart') {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '造好了一輛簡陋手推車，能運回更多木頭。', 'story');
+    } else {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, `成功製作了【${recipe.name}】。`, 'info');
+    }
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
   }

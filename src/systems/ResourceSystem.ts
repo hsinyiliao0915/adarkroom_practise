@@ -20,7 +20,14 @@ export class ResourceSystem {
     if (state.resources.wagon > 0) amount = 100;
 
     state.resources.wood += amount;
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, `你在森林中採集了乾木材。(+${amount} 木材)`, 'info');
+    const gatherMsgs = [
+      '林地上散落著枯枝敗葉。',
+      '乾燥的枯枝在腳下碎裂。',
+      '林間吹過刺骨的寒風。',
+      '收集到了足夠燃燒的木頭。'
+    ];
+    const randMsg = gatherMsgs[Math.floor(Math.random() * gatherMsgs.length)];
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, randMsg, 'info');
     EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     return amount;
   }
@@ -37,7 +44,7 @@ export class ResourceSystem {
 
     state.resources.meat -= amount;
     state.trapBaitMeat = (state.trapBaitMeat || 0) + amount;
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, `為森林陷阱投放了 ${amount} 塊生肉作為誘餌。(累積誘餌: ${state.trapBaitMeat})`, 'info');
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, `為森林陷阱投放了生肉作為誘餌。`, 'info');
     EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
@@ -80,17 +87,14 @@ export class ResourceSystem {
     state.resources.teeth += totalTeeth;
     state.resources.scales += totalScales;
 
-    const parts = [];
-    if (totalMeat > 0) parts.push(`${totalMeat} 生肉`);
-    if (totalFur > 0) parts.push(`${totalFur} 毛皮`);
-    if (totalTeeth > 0) parts.push(`${totalTeeth} 尖牙`);
-    if (totalScales > 0) parts.push(`${totalScales} 鱗片`);
-
-    const baitTag = hasBait ? '【誘餌吸引了大型獵物】' : '';
-    if (parts.length > 0) {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, `${baitTag}巡視陷阱發現收穫：${parts.join(', ')}。`, 'info');
+    if (totalScales > 0) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱捕獲到古怪鱗片。', 'story');
+    } else if (totalTeeth > 0) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱捕獲到一些尖牙。', 'story');
+    } else if (totalMeat > 0 || totalFur > 0) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱抓到了一些生肉和毛皮。', 'info');
     } else {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱空空如也，什麼也沒抓到。', 'info');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱空空如也。', 'info');
     }
 
     EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
