@@ -19,8 +19,12 @@ export class RoomSystem {
     state.fireFuel = 30;
     state.fireState = 'smoldering';
     state.warmthLevel = 'cold';
+    if (state.resources.wood === 0) {
+      state.resources.wood = 4;
+    }
     
     EventBus.getInstance().emit(Events.LOG_MESSAGE, '火苗在壁爐中微弱地燃起。冷風稍微被驅散了。', 'story');
+    EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
   }
@@ -38,6 +42,7 @@ export class RoomSystem {
         state.fireState = 'flickering';
         state.warmthLevel = 'cold';
         EventBus.getInstance().emit(Events.LOG_MESSAGE, '用剩餘的木柴重新點燃了壁爐。', 'story');
+        EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
         EventBus.getInstance().emit(Events.STATE_CHANGED);
         return true;
       } else {
@@ -55,7 +60,13 @@ export class RoomSystem {
     state.fireFuel = Math.min(100, state.fireFuel + 25);
     this.updateFireState(state);
 
+    if (!state.unlockedForest) {
+      state.unlockedForest = true;
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '庫存的乾柴不多了。必須踏入外面的森林採集木材。', 'story');
+    }
+
     EventBus.getInstance().emit(Events.LOG_MESSAGE, '你向壁爐中添了一根木柴。火光跳躍著。', 'info');
+    EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
   }
@@ -75,6 +86,11 @@ export class RoomSystem {
 
     if (state.fireState === 'dead') {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '壁爐裡的火熄滅了。屋內再次陷入刺骨的寒冷。', 'warn');
+    }
+
+    if (state.fireState !== 'dead' && state.resources.wood <= 1 && !state.unlockedForest) {
+      state.unlockedForest = true;
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '庫存的乾柴快要燒完了。必須踏入外面的森林採集木材。', 'story');
     }
 
     // Stranger arrival trigger

@@ -247,6 +247,25 @@ export class SpaceFlightView extends Phaser.GameObjects.Container {
       };
     }
 
+    // Touch / Pointer controls for mobile
+    scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.isFlying || !pointer.isDown) return;
+      const localX = pointer.x - this.x;
+      if (localX >= 20 && localX <= 470) {
+        this.shipX = localX;
+        this.shipText.setX(this.shipX);
+      }
+    });
+
+    scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!this.isFlying) return;
+      const localX = pointer.x - this.x;
+      if (localX >= 20 && localX <= 470) {
+        this.shipX = localX;
+        this.shipText.setX(this.shipX);
+      }
+    });
+
     scene.add.existing(this);
   }
 

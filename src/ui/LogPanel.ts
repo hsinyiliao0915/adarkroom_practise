@@ -4,9 +4,6 @@ import { GameData } from '../core/GameState';
 import { createTextStyle } from '../config/typography';
 
 export class LogPanel extends Phaser.GameObjects.Container {
-  private bgRect: Phaser.GameObjects.Rectangle;
-  private borderRect: Phaser.GameObjects.Rectangle;
-  private titleText: Phaser.GameObjects.Text;
   private textEntries: Phaser.GameObjects.Text[] = [];
   private maxPoolSize: number = 35;
   private panelHeight: number;
@@ -16,31 +13,9 @@ export class LogPanel extends Phaser.GameObjects.Container {
     super(scene, x, y);
     this.panelHeight = height;
 
-    // Background
-    this.bgRect = scene.add.rectangle(0, 0, width, height, 0x12141a, 0.95);
-    this.bgRect.setOrigin(0);
-
-    // Border
-    this.borderRect = scene.add.rectangle(0, 0, width, height);
-    this.borderRect.setStrokeStyle(1, 0x272c38);
-    this.borderRect.setFillStyle(0x000000, 0);
-    this.borderRect.setOrigin(0);
-
-    // Title
-    this.titleText = scene.add.text(
-      14,
-      14,
-      '【 荒野日誌 】',
-      createTextStyle('13px', '#94a3b8')
-    );
-
-    // Divider
-    const divider = scene.add.rectangle(14, 38, width - 28, 1, 0x272c38);
-    divider.setOrigin(0);
-
-    this.add([this.bgRect, this.borderRect, this.titleText, divider]);
-
+    // Clean minimal floating log panel (no inner box borders)
     // Create pool of text entries (position will be dynamically set in renderLogs)
+
     for (let i = 0; i < this.maxPoolSize; i++) {
       const entryText = scene.add.text(
         14,
@@ -96,7 +71,7 @@ export class LogPanel extends Phaser.GameObjects.Container {
   }
 
   private renderLogs(): void {
-    const startY = 48;
+    const startY = 14;
     const maxBottomY = this.panelHeight - 16;
     let currentY = startY;
 
@@ -112,7 +87,7 @@ export class LogPanel extends Phaser.GameObjects.Container {
 
       if (i < this.logItems.length && currentY < maxBottomY) {
         const item = this.logItems[i];
-        entryText.setText(`> ${item.text}`);
+        entryText.setText(item.text);
         entryText.setColor(colorMap[item.type] || '#e2e8f0');
         entryText.setY(currentY);
         entryText.setVisible(true);

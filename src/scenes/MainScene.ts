@@ -51,15 +51,7 @@ export class MainScene extends Phaser.Scene {
     const centerViewX = 300;
     const centerViewY = 55;
     const centerViewW = 490;
-    const centerViewH = 645;
 
-    // View Background
-    const viewBg = this.add.rectangle(centerViewX, centerViewY, centerViewW, centerViewH, 0x12141a, 0.95);
-    viewBg.setOrigin(0);
-    const viewBorder = this.add.rectangle(centerViewX, centerViewY, centerViewW, centerViewH);
-    viewBorder.setStrokeStyle(1, 0x272c38);
-    viewBorder.setFillStyle(0x000000, 0);
-    viewBorder.setOrigin(0);
 
     this.roomView = new RoomView(this, centerViewX, centerViewY, centerViewW);
     this.villageView = new VillageView(this, centerViewX, centerViewY);

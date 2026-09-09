@@ -169,21 +169,37 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.lightFireBtn.setVisible(true);
       this.lightFireBtn.setEnabled(true);
       this.stokeFireBtn.setVisible(false);
+      this.gatherWoodBtn.setVisible(false);
     } else {
       this.lightFireBtn.setVisible(false);
       this.stokeFireBtn.setVisible(true);
       this.stokeFireBtn.setEnabled(state.resources.wood >= 1);
+      this.gatherWoodBtn.setVisible(state.unlockedForest);
     }
 
-    this.gatherWoodBtn.setVisible(state.unlockedForest || state.fireState !== 'dead');
-    this.checkTrapsBtn.setVisible(state.buildings.traps > 0);
-
     const hasTraps = state.buildings.traps > 0;
+    this.checkTrapsBtn.setVisible(hasTraps);
     this.baitTrapsBtn.setVisible(hasTraps);
     if (hasTraps) {
       const baitCount = state.trapBaitMeat || 0;
       this.baitTrapsBtn.setText(`投放誘餌 (現有: ${baitCount})`);
       this.baitTrapsBtn.setEnabled(state.resources.meat >= 1);
+    }
+
+    // Dynamically stack visible action buttons without gaps
+    let currentY = 140;
+    const btnList = [
+      this.lightFireBtn,
+      this.stokeFireBtn,
+      this.gatherWoodBtn,
+      this.checkTrapsBtn,
+      this.baitTrapsBtn
+    ];
+    for (const btn of btnList) {
+      if (btn.visible) {
+        btn.setY(currentY);
+        currentY += 48;
+      }
     }
   }
 

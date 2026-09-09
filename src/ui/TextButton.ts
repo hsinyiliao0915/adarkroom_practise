@@ -32,26 +32,26 @@ export class TextButton extends Phaser.GameObjects.Container {
     this.cooldownDuration = config.cooldownMs || 0;
     this.onClickCallback = config.onClick;
 
-    // Background
-    this.bgRect = scene.add.rectangle(0, 0, this.btnWidth, this.btnHeight, 0x181a20);
+    // Background (transparent by default)
+    this.bgRect = scene.add.rectangle(0, 0, this.btnWidth, this.btnHeight, 0x000000, 0.01);
     this.bgRect.setOrigin(0.5);
 
-    // Cooldown overlay (fills horizontally)
-    this.cooldownRect = scene.add.rectangle(-this.btnWidth / 2, 0, 0, this.btnHeight, 0x334155, 0.6);
+    // Cooldown overlay (slides horizontally from left with soft white overlay)
+    this.cooldownRect = scene.add.rectangle(-this.btnWidth / 2, 0, 0, this.btnHeight, 0xffffff, 0.25);
     this.cooldownRect.setOrigin(0, 0.5);
 
-    // Border
+    // Border (1px crisp line)
     this.borderRect = scene.add.rectangle(0, 0, this.btnWidth, this.btnHeight);
-    this.borderRect.setStrokeStyle(1, 0x475569);
+    this.borderRect.setStrokeStyle(1, 0xffffff, 0.85);
     this.borderRect.setFillStyle(0x000000, 0);
     this.borderRect.setOrigin(0.5);
 
-    // Text label with crisp typography
+    // Text label with clean typography
     this.label = scene.add.text(
       0,
       0,
       config.text,
-      createTextStyle(config.fontSize || '13px', '#e2e8f0', false, { align: 'center' })
+      createTextStyle(config.fontSize || '13px', '#ffffff', false, { align: 'center' })
     );
     this.label.setOrigin(0.5);
 
@@ -68,16 +68,17 @@ export class TextButton extends Phaser.GameObjects.Container {
 
   private onPointerOver(): void {
     if (!this.isButtonEnabled || this.isCooldown) return;
-    this.bgRect.setFillStyle(0x2d3748);
-    this.borderRect.setStrokeStyle(1, 0x94a3b8);
-    this.label.setColor('#ffffff');
+    // Invert colors on hover (original A Dark Room style)
+    this.bgRect.setFillStyle(0xffffff, 0.95);
+    this.borderRect.setStrokeStyle(1, 0xffffff);
+    this.label.setColor('#0a0a0a');
   }
 
   private onPointerOut(): void {
     if (!this.isButtonEnabled || this.isCooldown) return;
-    this.bgRect.setFillStyle(0x181a20);
-    this.borderRect.setStrokeStyle(1, 0x475569);
-    this.label.setColor('#e2e8f0');
+    this.bgRect.setFillStyle(0x000000, 0.01);
+    this.borderRect.setStrokeStyle(1, 0xffffff, 0.85);
+    this.label.setColor('#ffffff');
   }
 
   private onPointerDown(): void {
@@ -122,26 +123,26 @@ export class TextButton extends Phaser.GameObjects.Container {
         this.updateVisualState();
       } else {
         const progress = 1 - this.cooldownRemaining / this.cooldownDuration;
-        this.cooldownRect.width = this.btnWidth * (1 - progress);
+        this.cooldownRect.width = this.btnWidth * progress;
       }
     }
   }
 
   private updateVisualState(): void {
     if (!this.isButtonEnabled) {
-      this.bgRect.setFillStyle(0x121418);
-      this.borderRect.setStrokeStyle(1, 0x2d3748);
-      this.label.setColor('#4a5568');
+      this.bgRect.setFillStyle(0x000000, 0.01);
+      this.borderRect.setStrokeStyle(1, 0x475569, 0.4);
+      this.label.setColor('#556070');
       this.bgRect.disableInteractive();
     } else if (this.isCooldown) {
-      this.bgRect.setFillStyle(0x1a1d24);
-      this.borderRect.setStrokeStyle(1, 0x334155);
+      this.bgRect.setFillStyle(0x000000, 0.01);
+      this.borderRect.setStrokeStyle(1, 0x64748b, 0.6);
       this.label.setColor('#94a3b8');
       this.bgRect.disableInteractive();
     } else {
-      this.bgRect.setFillStyle(0x181a20);
-      this.borderRect.setStrokeStyle(1, 0x475569);
-      this.label.setColor('#e2e8f0');
+      this.bgRect.setFillStyle(0x000000, 0.01);
+      this.borderRect.setStrokeStyle(1, 0xffffff, 0.85);
+      this.label.setColor('#ffffff');
       this.bgRect.setInteractive({ useHandCursor: true });
     }
   }

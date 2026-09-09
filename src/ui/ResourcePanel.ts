@@ -10,37 +10,32 @@ interface ResourceItemDisplay {
 }
 
 export class ResourcePanel extends Phaser.GameObjects.Container {
-  private bgRect: Phaser.GameObjects.Rectangle;
-  private borderRect: Phaser.GameObjects.Rectangle;
+  private outlineRect: Phaser.GameObjects.Rectangle;
   private titleText: Phaser.GameObjects.Text;
   private items: ResourceItemDisplay[] = [];
   private discoveredKeys: Set<keyof Resources> = new Set();
+  private panelWidth: number;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, width: number = 210, height: number = 660) {
+  constructor(scene: Phaser.Scene, x: number, y: number, width: number = 210, _height: number = 660) {
     super(scene, x, y);
+    this.panelWidth = width;
 
-    // Background
-    this.bgRect = scene.add.rectangle(0, 0, width, height, 0x12141a, 0.95);
-    this.bgRect.setOrigin(0);
+    // Compact stores outline (1px line, auto-sizes to fit items)
+    this.outlineRect = scene.add.rectangle(0, 10, width - 10, 40);
+    this.outlineRect.setStrokeStyle(1, 0xffffff, 0.4);
+    this.outlineRect.setFillStyle(0x000000, 0);
+    this.outlineRect.setOrigin(0);
 
-    // Border
-    this.borderRect = scene.add.rectangle(0, 0, width, height);
-    this.borderRect.setStrokeStyle(1, 0x272c38);
-    this.borderRect.setFillStyle(0x000000, 0);
-    this.borderRect.setOrigin(0);
-
-    // Title
+    // Title label overlapping the top border (like original fieldset)
     this.titleText = scene.add.text(
-      14,
-      14,
-      '【 庫存物資 】',
-      createTextStyle('13px', '#94a3b8')
+      12,
+      2,
+      ' 庫存 ',
+      createTextStyle('12px', '#cbd5e1')
     );
+    this.titleText.setBackgroundColor('#0d0e12');
 
-    const divider = scene.add.rectangle(14, 38, width - 28, 1, 0x272c38);
-    divider.setOrigin(0);
-
-    this.add([this.bgRect, this.borderRect, this.titleText, divider]);
+    this.add([this.outlineRect, this.titleText]);
 
     const resourceDefs: Array<{ key: keyof Resources; name: string }> = [
       { key: 'wood', name: '木材' },
@@ -58,13 +53,14 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
       { key: 'alienAlloy', name: '外星合金' }
     ];
 
-    resourceDefs.forEach((def, index) => {
+    resourceDefs.forEach((def) => {
       const textObj = scene.add.text(
         14,
-        48 + index * 24,
+        0,
         '',
-        createTextStyle('12px', '#cbd5e1')
+        createTextStyle('12px', '#e2e8f0')
       );
+      textObj.setVisible(false);
       this.items.push({
         key: def.key,
         name: def.name,
@@ -72,6 +68,9 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
       });
       this.add(textObj);
     });
+
+    // Initially hidden until any resource is discovered
+    this.setVisible(false);
 
     scene.add.existing(this);
   }
@@ -83,11 +82,11 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
     this.items.forEach((item) => {
       const amount = state.resources[item.key] || 0;
 
-      // Unlocked if > 0 or previously discovered
-      if (amount > 0 || this.discoveredKeys.has(item.key) || item.key === 'wood') {
+      // Unlocked strictly if amount > 0 or previously discovered
+      if (amount > 0 || this.discoveredKeys.has(item.key)) {
         this.discoveredKeys.add(item.key);
         item.unitText.setVisible(true);
-        item.unitText.setY(48 + visibleIndex * 24);
+        item.unitText.setY(22 + visibleIndex * 24);
 
         const rate = netRates[item.key] || 0;
         let rateStr = '';
@@ -96,11 +95,21 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
           rateStr = ` (${sign}${rate.toFixed(1)}/s)`;
         }
 
-        item.unitText.setText(`${item.name}：${Math.floor(amount)}${rateStr}`);
+        // Clean layout: name and count aligned
+        const countStr = `${Math.floor(amount)}${rateStr}`;
+        item.unitText.setText(`${item.name}    ${countStr}`);
         visibleIndex++;
       } else {
         item.unitText.setVisible(false);
       }
     });
+
+    if (visibleIndex > 0) {
+      this.setVisible(true);
+      const boxHeight = 22 + visibleIndex * 24 + 10;
+      this.outlineRect.setSize(this.panelWidth - 10, boxHeight);
+    } else {
+      this.setVisible(false);
+    }
   }
 }
