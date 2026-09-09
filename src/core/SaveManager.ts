@@ -96,6 +96,7 @@ export class SaveManager {
       base.unlockedTabs.village = Boolean(raw.unlockedTabs.village);
       base.unlockedTabs.craft = Boolean(raw.unlockedTabs.craft);
       base.unlockedTabs.map = Boolean(raw.unlockedTabs.map);
+      base.unlockedTabs.ship = Boolean(raw.unlockedTabs.ship);
     }
 
     // 6. 地圖探索與遠征狀態
@@ -136,7 +137,15 @@ export class SaveManager {
       base.expedition.enemyMaxAttackCooldown = cleanNum(exp.enemyMaxAttackCooldown, 0);
     }
 
-    // 7. 日誌紀錄
+    // 7. 星艦狀態清洗
+    if (raw.starship && typeof raw.starship === 'object') {
+      base.starship.unlocked = Boolean(raw.starship.unlocked);
+      base.starship.hullLevel = cleanInt(raw.starship.hullLevel, base.starship.hullLevel);
+      base.starship.engineLevel = cleanInt(raw.starship.engineLevel, base.starship.engineLevel);
+      base.starship.clearedEscape = Boolean(raw.starship.clearedEscape);
+    }
+
+    // 8. 日誌紀錄
     if (Array.isArray(raw.logs)) {
       base.logs = raw.logs.slice(-50).map((l: any) => ({
         text: String(l.text || ''),

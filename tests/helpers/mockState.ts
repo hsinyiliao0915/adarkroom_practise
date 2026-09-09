@@ -26,6 +26,10 @@ export function createMockGameState(overrides?: Partial<GameData>): GameData {
     expedition: {
       ...base.expedition,
       ...(overrides.expedition || {})
+    },
+    starship: {
+      ...base.starship,
+      ...(overrides.starship || {})
     }
   };
 }

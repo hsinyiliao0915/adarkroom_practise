@@ -295,6 +295,17 @@ export class MapSystem {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, `此處已被建立為前哨基地，水壺已全部裝滿！`, 'story');
     }
 
+    if (landmark.id === 'crashed_starship') {
+      if (!state.starship) {
+        state.starship = { unlocked: true, hullLevel: 0, engineLevel: 1, clearedEscape: false };
+      } else {
+        state.starship.unlocked = true;
+      }
+      state.unlockedTabs.ship = true;
+      EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'ship');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '已尋獲並啟動外星巡航艦殘骸！解鎖了頂部【星艦】維修分頁。', 'story');
+    }
+
     EventBus.getInstance().emit(Events.STATE_CHANGED);
   }
 

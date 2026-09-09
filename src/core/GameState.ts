@@ -1,7 +1,14 @@
 export type FireState = 'dead' | 'smoldering' | 'flickering' | 'burning' | 'roaring';
 export type WarmthLevel = 'freezing' | 'cold' | 'mild' | 'warm';
 export type StrangerState = 'none' | 'sleeping' | 'awake' | 'helping';
-export type ActiveTab = 'room' | 'village' | 'craft' | 'map';
+export type ActiveTab = 'room' | 'village' | 'craft' | 'map' | 'ship';
+
+export interface StarshipState {
+  unlocked: boolean;
+  hullLevel: number;
+  engineLevel: number;
+  clearedEscape: boolean;
+}
 
 export interface Resources {
   wood: number;
@@ -108,6 +115,7 @@ export interface GameData {
     village: boolean;
     craft: boolean;
     map: boolean;
+    ship: boolean;
   };
   activeTab: ActiveTab;
 
@@ -132,6 +140,9 @@ export interface GameData {
   visitedTiles: string[]; // "x,y" keys
   clearedLandmarks: string[]; // landmark IDs
   expedition: ExpeditionState;
+
+  // Starship state
+  starship: StarshipState;
 
   // Message logs
   logs: Array<{ text: string; time: number; type?: 'info' | 'warn' | 'event' | 'story' }>;
@@ -160,7 +171,8 @@ export const INITIAL_GAME_DATA: GameData = {
     room: true,
     village: false,
     craft: false,
-    map: false
+    map: false,
+    ship: false
   },
   activeTab: 'room',
 
@@ -241,6 +253,13 @@ export const INITIAL_GAME_DATA: GameData = {
     weaponCooldowns: {},
     enemyAttackCooldown: 0,
     enemyMaxAttackCooldown: 0
+  },
+
+  starship: {
+    unlocked: false,
+    hullLevel: 0,
+    engineLevel: 1,
+    clearedEscape: false
   },
 
   logs: [

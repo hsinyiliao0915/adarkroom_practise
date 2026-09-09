@@ -9,6 +9,8 @@ import { RoomView } from '../ui/RoomView';
 import { VillageView } from '../ui/VillageView';
 import { CraftView } from '../ui/CraftView';
 import { MapView } from '../ui/MapView';
+import { ShipView } from '../ui/ShipView';
+import { SpaceFlightView } from '../ui/SpaceFlightView';
 import { TextButton } from '../ui/TextButton';
 import { SaveLoadModal } from '../ui/SaveLoadModal';
 import { createTextStyle } from '../config/typography';
@@ -23,6 +25,8 @@ export class MainScene extends Phaser.Scene {
   private villageView!: VillageView;
   private craftView!: CraftView;
   private mapView!: MapView;
+  private shipView!: ShipView;
+  private spaceFlightView!: SpaceFlightView;
   private saveLoadModal!: SaveLoadModal;
 
   private tabButtons: Map<ActiveTab, TextButton> = new Map();
@@ -61,6 +65,25 @@ export class MainScene extends Phaser.Scene {
     this.villageView = new VillageView(this, centerViewX, centerViewY);
     this.craftView = new CraftView(this, centerViewX, centerViewY);
     this.mapView = new MapView(this, centerViewX, centerViewY);
+    this.shipView = new ShipView(this, centerViewX, centerViewY, () => {
+      this.startSpaceFlight();
+    });
+    this.spaceFlightView = new SpaceFlightView(
+      this,
+      centerViewX,
+      centerViewY,
+      () => {
+        this.switchTab('ship');
+      },
+      () => {
+        const newGame = SaveManager.getInstance().startNewGame();
+        this.gameState = newGame.state;
+        this.switchTab('room');
+        this.logPanel.initFromState(this.gameState);
+        this.refreshUI();
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！火堆已熄滅，房間很冷。`, 'story');
+      }
+    );
 
     // Right: Resource Inventory Panel
     this.resourcePanel = new ResourcePanel(this, 802, 55, 230, 645);
@@ -104,7 +127,8 @@ export class MainScene extends Phaser.Scene {
       { key: 'room', label: '小黑屋' },
       { key: 'village', label: '聚落' },
       { key: 'craft', label: '製造所' },
-      { key: 'map', label: '荒野探索' }
+      { key: 'map', label: '荒野探索' },
+      { key: 'ship', label: '星艦' }
     ];
 
     let tabStartX = 300;
@@ -161,8 +185,21 @@ export class MainScene extends Phaser.Scene {
     this.villageView.setVisible(tab === 'village');
     this.craftView.setVisible(tab === 'craft');
     this.mapView.setVisible(tab === 'map');
+    this.shipView.setVisible(tab === 'ship');
+    this.spaceFlightView.setVisible(false);
 
     this.refreshUI();
+  }
+
+  public startSpaceFlight(): void {
+    this.roomView.setVisible(false);
+    this.villageView.setVisible(false);
+    this.craftView.setVisible(false);
+    this.mapView.setVisible(false);
+    this.shipView.setVisible(false);
+    this.spaceFlightView.setVisible(true);
+
+    this.spaceFlightView.startFlight(this.gameState);
   }
 
   public refreshUI(): void {
@@ -176,6 +213,7 @@ export class MainScene extends Phaser.Scene {
     if (this.villageView.visible) this.villageView.updateDisplay(this.gameState);
     if (this.craftView.visible) this.craftView.updateDisplay(this.gameState);
     if (this.mapView.visible) this.mapView.updateDisplay(this.gameState);
+    if (this.shipView.visible) this.shipView.updateDisplay(this.gameState);
 
     // Update resource sidebar
     this.resourcePanel.updateDisplay(this.gameState);
@@ -185,5 +223,6 @@ export class MainScene extends Phaser.Scene {
     // Forward update to active views for animations/cooldowns
     if (this.roomView.visible) this.roomView.update(delta);
     if (this.mapView.visible) this.mapView.update(delta);
+    if (this.spaceFlightView.visible) this.spaceFlightView.update(delta);
   }
 }
