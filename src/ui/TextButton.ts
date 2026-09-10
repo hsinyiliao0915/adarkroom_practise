@@ -10,6 +10,7 @@ export interface TextButtonConfig {
   fontSize?: string;
   cooldownMs?: number;
   onClick?: () => void;
+  getTooltip?: () => Array<{ name: string; amount: number | string }> | string | null;
 }
 
 export class TextButton extends Phaser.GameObjects.Container {
@@ -23,9 +24,15 @@ export class TextButton extends Phaser.GameObjects.Container {
   private cooldownDuration: number = 0;
   private cooldownRemaining: number = 0;
   private onClickCallback?: () => void;
+  private getTooltipCallback?: () => Array<{ name: string; amount: number | string }> | string | null;
   private btnWidth: number;
   private btnHeight: number;
   private unsubTheme?: () => void;
+
+  // Tooltip popup
+  private tooltipContainer?: Phaser.GameObjects.Container;
+  private tooltipBg?: Phaser.GameObjects.Rectangle;
+  private tooltipRows: Phaser.GameObjects.Text[] = [];
 
   constructor(scene: Phaser.Scene, x: number, y: number, config: TextButtonConfig) {
     super(scene, x, y);
@@ -34,6 +41,7 @@ export class TextButton extends Phaser.GameObjects.Container {
     this.btnHeight = config.height || 36;
     this.cooldownDuration = config.cooldownMs || 0;
     this.onClickCallback = config.onClick;
+    this.getTooltipCallback = config.getTooltip;
 
     const theme = ThemeManager.getInstance().getTheme();
 
@@ -64,8 +72,6 @@ export class TextButton extends Phaser.GameObjects.Container {
 
     this.setSize(this.btnWidth, this.btnHeight);
 
-    // Interactivity: bgRect origin is 0.5, Phaser automatically shifts local coords by displayOrigin
-    // Using default hitArea covers [0..btnWidth, 0..btnHeight], perfectly covering the entire button area
     this.bgRect.setInteractive({ useHandCursor: true });
     this.bgRect.on('pointerover', this.onPointerOver, this);
     this.bgRect.on('pointerout', this.onPointerOut, this);
@@ -77,26 +83,97 @@ export class TextButton extends Phaser.GameObjects.Container {
 
     this.on('destroy', () => {
       if (this.unsubTheme) this.unsubTheme();
+      this.hideTooltip();
     });
 
     scene.add.existing(this);
   }
 
+  public setTooltipProvider(provider: () => Array<{ name: string; amount: number | string }> | string | null): void {
+    this.getTooltipCallback = provider;
+  }
+
   private onPointerOver(): void {
-    if (!this.isButtonEnabled || this.isCooldown) return;
     const theme = ThemeManager.getInstance().getTheme();
-    // Invert colors on hover (original A Dark Room style)
-    this.bgRect.setFillStyle(theme.btnBgHoverHex, theme.btnBgHoverAlpha);
-    this.borderRect.setStrokeStyle(1, theme.btnBorderHex);
-    this.label.setColor(theme.btnTextHover);
+    if (this.isButtonEnabled && !this.isCooldown) {
+      this.bgRect.setFillStyle(theme.btnBgHoverHex, theme.btnBgHoverAlpha);
+      this.borderRect.setStrokeStyle(1, theme.btnBorderHex);
+      this.label.setColor(theme.btnTextHover);
+    }
+    this.showTooltip();
   }
 
   private onPointerOut(): void {
-    if (!this.isButtonEnabled || this.isCooldown) return;
     const theme = ThemeManager.getInstance().getTheme();
-    this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
-    this.borderRect.setStrokeStyle(1, theme.btnBorderHex, theme.btnBorderAlpha);
-    this.label.setColor(theme.btnText);
+    if (this.isButtonEnabled && !this.isCooldown) {
+      this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
+      this.borderRect.setStrokeStyle(1, theme.btnBorderHex, theme.btnBorderAlpha);
+      this.label.setColor(theme.btnText);
+    }
+    this.hideTooltip();
+  }
+
+  private showTooltip(): void {
+    if (!this.getTooltipCallback) return;
+    const content = this.getTooltipCallback();
+    if (!content) return;
+
+    if (!this.tooltipContainer) {
+      this.tooltipContainer = this.scene.add.container(this.btnWidth / 2 + 12, 0);
+      this.tooltipBg = this.scene.add.rectangle(0, 0, 100, 40, 0x000000, 0.95);
+      this.tooltipBg.setStrokeStyle(1, 0x555555, 0.9);
+      this.tooltipBg.setOrigin(0, 0.5);
+      this.tooltipContainer.add(this.tooltipBg);
+      this.add(this.tooltipContainer);
+    }
+
+    // Clear old texts
+    this.tooltipRows.forEach((t) => t.destroy());
+    this.tooltipRows = [];
+
+    const theme = ThemeManager.getInstance().getTheme();
+
+    if (typeof content === 'string') {
+      const txt = this.scene.add.text(10, 0, content, createTextStyle('12px', theme.textMuted));
+      txt.setOrigin(0, 0.5);
+      this.tooltipContainer.add(txt);
+      this.tooltipRows.push(txt);
+
+      const w = txt.width + 20;
+      const h = txt.height + 12;
+      this.tooltipBg!.setSize(w, h);
+    } else if (Array.isArray(content) && content.length > 0) {
+      let maxW = 80;
+      const rowHeight = 20;
+      const startY = -((content.length - 1) * rowHeight) / 2;
+
+      content.forEach((item, idx) => {
+        const y = startY + idx * rowHeight;
+        const keyTxt = this.scene.add.text(10, y, item.name, createTextStyle('12px', '#94a3b8'));
+        keyTxt.setOrigin(0, 0.5);
+
+        const valTxt = this.scene.add.text(75, y, String(item.amount), createTextStyle('12px', '#ffffff'));
+        valTxt.setOrigin(0, 0.5);
+
+        this.tooltipContainer!.add([keyTxt, valTxt]);
+        this.tooltipRows.push(keyTxt, valTxt);
+
+        const totalRowW = keyTxt.width + valTxt.width + 30;
+        if (totalRowW > maxW) maxW = totalRowW;
+      });
+
+      const totalH = content.length * rowHeight + 12;
+      this.tooltipBg!.setSize(maxW, totalH);
+    }
+
+    this.tooltipContainer.setVisible(true);
+    this.tooltipContainer.setDepth(100);
+  }
+
+  private hideTooltip(): void {
+    if (this.tooltipContainer) {
+      this.tooltipContainer.setVisible(false);
+    }
   }
 
   private onPointerDown(): void {
@@ -152,7 +229,6 @@ export class TextButton extends Phaser.GameObjects.Container {
 
     const isClickable = this.isButtonEnabled && !this.isCooldown;
     if (this.bgRect.input) {
-      this.bgRect.input.enabled = isClickable;
       this.bgRect.input.cursor = isClickable ? 'pointer' : 'default';
     }
 

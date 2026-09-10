@@ -14,6 +14,7 @@ import { ShipView } from '../ui/ShipView';
 import { SpaceFlightView } from '../ui/SpaceFlightView';
 import { SaveLoadModal } from '../ui/SaveLoadModal';
 import { EventModal } from '../ui/EventModal';
+import { SpeedModal } from '../ui/SpeedModal';
 import { RoomSystem } from '../systems/RoomSystem';
 import { DevAutoSystem } from '../systems/DevAutoSystem';
 import { StoryEventSystem } from '../systems/StoryEventSystem';
@@ -42,17 +43,20 @@ export class MainScene extends Phaser.Scene {
   private spaceFlightView!: SpaceFlightView;
   private saveLoadModal!: SaveLoadModal;
   private eventModal!: EventModal;
+  private speedModal!: SpeedModal;
 
   private inlineTabs: TabItem[] = [];
   private activeUnderline!: Phaser.GameObjects.Rectangle;
   private titleText!: Phaser.GameObjects.Text;
   private themeToggleLink!: Phaser.GameObjects.Text;
   private autoModeLink!: Phaser.GameObjects.Text;
+  private speedLink!: Phaser.GameObjects.Text;
   private saveLink!: Phaser.GameObjects.Text;
   private newGameLink!: Phaser.GameObjects.Text;
   private utilitySep1!: Phaser.GameObjects.Text;
   private utilitySep2!: Phaser.GameObjects.Text;
   private utilitySep3!: Phaser.GameObjects.Text;
+  private utilitySep4!: Phaser.GameObjects.Text;
   private unsubTheme?: () => void;
   private unsubAutoMode?: () => void;
 
@@ -118,6 +122,7 @@ export class MainScene extends Phaser.Scene {
     // 4. Create Modals
     this.saveLoadModal = new SaveLoadModal(this);
     this.eventModal = new EventModal(this);
+    this.speedModal = new SpeedModal(this);
 
     // 5. Switch to current tab
     this.switchTab(this.gameState.activeTab);
@@ -146,6 +151,7 @@ export class MainScene extends Phaser.Scene {
       if (this.unsubTheme) this.unsubTheme();
       if (this.unsubAutoMode) this.unsubAutoMode();
       if (this.eventModal) this.eventModal.destroy();
+      if (this.speedModal) this.speedModal.destroy();
     });
 
     // 7. Start Tick Engine & AutoSave
@@ -239,16 +245,40 @@ export class MainScene extends Phaser.Scene {
 
     this.utilitySep2 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
 
-    // 3. Save Management Link ([ 存檔管理 ])
+    // 3. Speed Mode Link ([ 加速 ] / [ 2倍速 ])
+    const speedMult = TickEngine.getInstance().getSpeedMultiplier();
+    const speedText = speedMult > 1 ? '[ 2倍速 ]' : '[ 加速 ]';
+    this.speedLink = this.add.text(0, 19, speedText, createTextStyle('12px', theme.navText));
+    this.speedLink.setInteractive({ useHandCursor: true });
+    this.speedLink.on('pointerover', () => this.speedLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
+    this.speedLink.on('pointerout', () => this.speedLink.setColor(ThemeManager.getInstance().getTheme().navText));
+    this.speedLink.on('pointerdown', () => {
+      this.speedModal.show(() => {
+        const current = TickEngine.getInstance().getSpeedMultiplier();
+        const next = current > 1 ? 1 : 2;
+        TickEngine.getInstance().setSpeedMultiplier(next);
+        this.speedLink.setText(next > 1 ? '[ 2倍速 ]' : '[ 加速 ]');
+        this.layoutUtilityLinks();
+        EventBus.getInstance().emit(
+          Events.LOG_MESSAGE,
+          next > 1 ? '加速模式已開啟（2倍速）。' : '加速模式已關閉（正常速度）。',
+          'info'
+        );
+      });
+    });
+
+    this.utilitySep3 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
+
+    // 4. Save Management Link ([ 存檔管理 ])
     this.saveLink = this.add.text(0, 19, '[ 存檔管理 ]', createTextStyle('12px', theme.navText));
     this.saveLink.setInteractive({ useHandCursor: true });
     this.saveLink.on('pointerover', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
     this.saveLink.on('pointerout', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().navText));
     this.saveLink.on('pointerdown', () => this.saveLoadModal.show(this));
 
-    this.utilitySep3 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
+    this.utilitySep4 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
 
-    // 4. New Game Link ([ 新遊戲 ])
+    // 5. New Game Link ([ 新遊戲 ])
     this.newGameLink = this.add.text(0, 19, '[ 新遊戲 ]', createTextStyle('12px', theme.navText));
     this.newGameLink.setInteractive({ useHandCursor: true });
     this.newGameLink.on('pointerover', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
@@ -275,10 +305,13 @@ export class MainScene extends Phaser.Scene {
     const gap = 8;
 
     this.newGameLink.setPosition(rightEdge - this.newGameLink.width, 19);
-    this.utilitySep3.setPosition(this.newGameLink.x - gap - this.utilitySep3.width, 19);
+    this.utilitySep4.setPosition(this.newGameLink.x - gap - this.utilitySep4.width, 19);
 
-    this.saveLink.setPosition(this.utilitySep3.x - gap - this.saveLink.width, 19);
-    this.utilitySep2.setPosition(this.saveLink.x - gap - this.utilitySep2.width, 19);
+    this.saveLink.setPosition(this.utilitySep4.x - gap - this.saveLink.width, 19);
+    this.utilitySep3.setPosition(this.saveLink.x - gap - this.utilitySep3.width, 19);
+
+    this.speedLink.setPosition(this.utilitySep3.x - gap - this.speedLink.width, 19);
+    this.utilitySep2.setPosition(this.speedLink.x - gap - this.utilitySep2.width, 19);
 
     this.autoModeLink.setPosition(this.utilitySep2.x - gap - this.autoModeLink.width, 19);
     this.utilitySep1.setPosition(this.autoModeLink.x - gap - this.utilitySep1.width, 19);
@@ -298,8 +331,11 @@ export class MainScene extends Phaser.Scene {
     this.autoModeLink.setColor(theme.navText);
     this.utilitySep2.setColor(theme.navSepColor);
 
-    this.saveLink.setColor(theme.navText);
+    this.speedLink.setColor(theme.navText);
     this.utilitySep3.setColor(theme.navSepColor);
+
+    this.saveLink.setColor(theme.navText);
+    this.utilitySep4.setColor(theme.navSepColor);
 
     this.newGameLink.setColor(theme.navText);
 
@@ -431,13 +467,16 @@ export class MainScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    const speed = TickEngine.getInstance().getSpeedMultiplier();
+    const scaledDelta = delta * speed;
+
     // 1. Dev auto mode update
-    DevAutoSystem.getInstance().update(delta, this.gameState);
+    DevAutoSystem.getInstance().update(scaledDelta, this.gameState);
 
     // 2. Forward update to active views for animations/cooldowns
-    if (this.roomView) this.roomView.update(delta);
-    if (this.outsideView) this.outsideView.update(delta);
-    if (this.mapView && this.mapView.visible) this.mapView.update(delta);
-    if (this.spaceFlightView && this.spaceFlightView.visible) this.spaceFlightView.update(delta);
+    if (this.roomView) this.roomView.update(scaledDelta);
+    if (this.outsideView) this.outsideView.update(scaledDelta);
+    if (this.mapView && this.mapView.visible) this.mapView.update(scaledDelta);
+    if (this.spaceFlightView && this.spaceFlightView.visible) this.spaceFlightView.update(scaledDelta);
   }
 }

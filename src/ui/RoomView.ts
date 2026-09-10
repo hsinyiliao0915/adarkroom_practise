@@ -286,43 +286,84 @@ export class RoomView extends Phaser.GameObjects.Container {
       // 1. Traps (10 + n*10 wood, max 10)
       const trapCount = state.buildings.traps || 0;
       const trapCost = 10 + trapCount * 10;
-      const canBuildTrap = trapCount < 10 && state.resources.wood >= trapCost;
-      placeBuildingBtn(this.trapBtn, true, canBuildTrap);
+      const isTrapMaxed = trapCount >= 10;
+      this.trapBtn.setTooltipProvider(() => {
+        if (isTrapMaxed) return '已達上限 10';
+        return [{ name: '木頭', amount: trapCost }];
+      });
+      placeBuildingBtn(this.trapBtn, true, !isTrapMaxed);
 
       // 2. Cart (30 wood, max 1, stays visible disabled once built)
       const cartCount = state.resources.cart || 0;
-      const canBuildCart = cartCount === 0 && state.resources.wood >= 30;
-      placeBuildingBtn(this.cartBtn, true, canBuildCart);
+      const isCartMaxed = cartCount >= 1;
+      this.cartBtn.setTooltipProvider(() => {
+        if (isCartMaxed) return '已建造完成';
+        return [{ name: '木頭', amount: 30 }];
+      });
+      placeBuildingBtn(this.cartBtn, true, !isCartMaxed);
 
       // 3. Huts (100 + n*50 wood, max 20)
       const hutCount = state.buildings.huts || 0;
       const hutCost = 100 + hutCount * 50;
-      const canBuildHut = hutCount < 20 && state.resources.wood >= hutCost;
-      placeBuildingBtn(this.hutBtn, true, canBuildHut);
+      const isHutMaxed = hutCount >= 20;
+      this.hutBtn.setTooltipProvider(() => {
+        if (isHutMaxed) return '已達上限 20';
+        return [{ name: '木頭', amount: hutCost }];
+      });
+      placeBuildingBtn(this.hutBtn, true, !isHutMaxed);
 
       // 4. Lodge (狩獵小屋, unlocks when huts >= 1)
       const showLodge = hutCount >= 1;
       const lodgeCount = state.buildings.lodge || 0;
-      const canBuildLodge = lodgeCount === 0 && state.resources.wood >= 200 && state.resources.fur >= 10 && state.resources.meat >= 5;
-      placeBuildingBtn(this.lodgeBtn, showLodge, canBuildLodge);
+      const isLodgeMaxed = lodgeCount >= 1;
+      this.lodgeBtn.setTooltipProvider(() => {
+        if (isLodgeMaxed) return '已建造完成';
+        return [
+          { name: '木頭', amount: 200 },
+          { name: '毛皮', amount: 10 },
+          { name: '肉', amount: 5 }
+        ];
+      });
+      placeBuildingBtn(this.lodgeBtn, showLodge, !isLodgeMaxed);
 
       // 5. Trading Post (貿易站, unlocks when lodge built)
       const showTradingPost = lodgeCount > 0 || (state.buildings.tradingPost || 0) > 0;
       const tpCount = state.buildings.tradingPost || 0;
-      const canBuildTp = tpCount === 0 && state.resources.wood >= 400 && state.resources.fur >= 100;
-      placeBuildingBtn(this.tradingPostBtn, showTradingPost, canBuildTp);
+      const isTpMaxed = tpCount >= 1;
+      this.tradingPostBtn.setTooltipProvider(() => {
+        if (isTpMaxed) return '已建造完成';
+        return [
+          { name: '木頭', amount: 400 },
+          { name: '毛皮', amount: 100 }
+        ];
+      });
+      placeBuildingBtn(this.tradingPostBtn, showTradingPost, !isTpMaxed);
 
       // 6. Tannery (製革屋, unlocks when fur >= 15 or tannery built)
       const showTannery = (state.resources.fur >= 15) || (state.buildings.tannery || 0) > 0;
       const tanneryCount = state.buildings.tannery || 0;
-      const canBuildTannery = tanneryCount === 0 && state.resources.wood >= 300 && state.resources.fur >= 150;
-      placeBuildingBtn(this.tanneryBtn, showTannery, canBuildTannery);
+      const isTanneryMaxed = tanneryCount >= 1;
+      this.tanneryBtn.setTooltipProvider(() => {
+        if (isTanneryMaxed) return '已建造完成';
+        return [
+          { name: '木頭', amount: 300 },
+          { name: '毛皮', amount: 150 }
+        ];
+      });
+      placeBuildingBtn(this.tanneryBtn, showTannery, !isTanneryMaxed);
 
       // 7. Smokehouse (燻肉房, unlocks when meat >= 15 or smokehouse built)
       const showSmokehouse = (state.resources.meat >= 15) || (state.buildings.smokehouse || 0) > 0;
       const smokehouseCount = state.buildings.smokehouse || 0;
-      const canBuildSmokehouse = smokehouseCount === 0 && state.resources.wood >= 600 && state.resources.meat >= 200;
-      placeBuildingBtn(this.smokehouseBtn, showSmokehouse, canBuildSmokehouse);
+      const isSmokehouseMaxed = smokehouseCount >= 1;
+      this.smokehouseBtn.setTooltipProvider(() => {
+        if (isSmokehouseMaxed) return '已建造完成';
+        return [
+          { name: '木頭', amount: 600 },
+          { name: '肉', amount: 200 }
+        ];
+      });
+      placeBuildingBtn(this.smokehouseBtn, showSmokehouse, !isSmokehouseMaxed);
     } else {
       this.trapBtn.setVisible(false);
       this.cartBtn.setVisible(false);

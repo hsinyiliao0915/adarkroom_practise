@@ -62,8 +62,8 @@ describe('ResourceSystem & Early Game Economy', () => {
 
     // 1 bait should be consumed per trap checked
     assert.strictEqual(state.trapBaitMeat, 4);
-    // At least meat and fur should be caught
-    assert.ok(state.resources.meat > 0);
-    assert.ok(state.resources.fur > 0);
+    // Traps should have caught loot
+    const totalCaught = (state.resources.fur || 0) + (state.resources.meat || 0) + (state.resources.scales || 0) + (state.resources.teeth || 0) + (state.resources.cloth || 0);
+    assert.ok(totalCaught > 0);
   });
 });

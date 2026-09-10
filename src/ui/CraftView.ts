@@ -108,7 +108,7 @@ export class CraftView extends Phaser.GameObjects.Container {
       } else {
         row.costText.setText(costParts.join(', '));
         row.costText.setColor(canAfford ? '#94a3b8' : '#e11d48');
-        row.craftBtn.setEnabled(canAfford);
+        row.craftBtn.setEnabled(true);
       }
     });
   }

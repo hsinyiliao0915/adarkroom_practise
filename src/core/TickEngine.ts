@@ -9,6 +9,7 @@ export class TickEngine {
   private static instance: TickEngine;
   private timer: number | null = null;
   private lastTickTime: number = Date.now();
+  private speedMultiplier: number = 1;
 
   private constructor() {}
 
@@ -19,13 +20,21 @@ export class TickEngine {
     return TickEngine.instance;
   }
 
+  public getSpeedMultiplier(): number {
+    return this.speedMultiplier;
+  }
+
+  public setSpeedMultiplier(multiplier: number): void {
+    this.speedMultiplier = Math.max(0.1, multiplier);
+  }
+
   public start(getState: () => GameData, intervalMs: number = 500): void {
     this.stop();
     this.lastTickTime = Date.now();
 
     this.timer = window.setInterval(() => {
       const now = Date.now();
-      const deltaSeconds = (now - this.lastTickTime) / 1000;
+      const deltaSeconds = ((now - this.lastTickTime) / 1000) * this.speedMultiplier;
       this.lastTickTime = now;
 
       const state = getState();

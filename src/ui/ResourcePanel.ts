@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { GameData, Resources } from '../core/GameState';
+import { GameData, Resources, Workers } from '../core/GameState';
 import { VillageSystem } from '../systems/VillageSystem';
+import { WORKER_JOBS } from '../data/recipes';
 import { createTextStyle } from '../config/typography';
 import { ThemeManager } from '../config/ThemeManager';
 import { EventBus, Events } from '../core/EventBus';
@@ -10,6 +11,7 @@ interface ResourceItemDisplay {
   name: string;
   nameText: Phaser.GameObjects.Text;
   valText: Phaser.GameObjects.Text;
+  hitArea: Phaser.GameObjects.Rectangle;
 }
 
 interface BuildingItemDisplay {
@@ -22,6 +24,7 @@ interface BuildingItemDisplay {
 export class ResourcePanel extends Phaser.GameObjects.Container {
   private panelWidth: number;
   private discoveredKeys: Set<keyof Resources> = new Set();
+  private lastState?: GameData;
 
   // Top Box: Village / Forest
   private villageContainer: Phaser.GameObjects.Container;
@@ -35,6 +38,11 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
   private storesOutline: Phaser.GameObjects.Rectangle;
   private storesTitleText: Phaser.GameObjects.Text;
   private resourceItems: ResourceItemDisplay[] = [];
+
+  // Rate Breakdown Tooltip
+  private rateTooltipContainer: Phaser.GameObjects.Container;
+  private rateTooltipBg: Phaser.GameObjects.Rectangle;
+  private rateTooltipRows: Phaser.GameObjects.Text[] = [];
 
   private unsubTheme?: () => void;
 
@@ -131,19 +139,41 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
       const valText = scene.add.text(width - 24, 0, '', createTextStyle('13px', theme.textPrimary));
       valText.setOrigin(1, 0);
 
+      const hitArea = scene.add.rectangle(0, 0, width - 10, 22, 0xffffff, 0);
+      hitArea.setOrigin(0, 0);
+      hitArea.setInteractive({ useHandCursor: true });
+      hitArea.on('pointerover', () => {
+        this.showRateTooltip(def.key, hitArea.y + this.storesContainer.y);
+      });
+      hitArea.on('pointerout', () => {
+        this.hideRateTooltip();
+      });
+
       nameText.setVisible(false);
       valText.setVisible(false);
+      hitArea.setVisible(false);
 
       this.resourceItems.push({
         key: def.key,
         name: def.name,
         nameText,
-        valText
+        valText,
+        hitArea
       });
-      this.storesContainer.add([nameText, valText]);
+      this.storesContainer.add([hitArea, nameText, valText]);
     });
 
     this.add(this.storesContainer);
+
+    // Rate breakdown tooltip box
+    this.rateTooltipContainer = scene.add.container(0, 0);
+    this.rateTooltipBg = scene.add.rectangle(0, 0, 160, 50, 0x000000, 0.95);
+    this.rateTooltipBg.setStrokeStyle(1, 0x555555, 0.9);
+    this.rateTooltipBg.setOrigin(0, 0);
+    this.rateTooltipContainer.add(this.rateTooltipBg);
+    this.rateTooltipContainer.setVisible(false);
+    this.rateTooltipContainer.setDepth(200);
+    this.add(this.rateTooltipContainer);
 
     this.unsubTheme = EventBus.getInstance().on(Events.THEME_CHANGED, () => {
       this.applyTheme();
@@ -191,6 +221,7 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
   }
 
   public updateDisplay(state: GameData, activeTab?: string): void {
+    this.lastState = state;
     const currentTab = activeTab || state.activeTab;
 
     // ==========================================
@@ -296,10 +327,14 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
         item.valText.setY(yPos);
         item.valText.setText(String(Math.floor(amount)));
 
+        item.hitArea.setY(yPos);
+        item.hitArea.setVisible(true);
+
         visibleResIdx++;
       } else {
         item.nameText.setVisible(false);
         item.valText.setVisible(false);
+        item.hitArea.setVisible(false);
       }
     });
 
@@ -310,6 +345,88 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
     } else {
       this.storesContainer.setVisible(false);
     }
+  }
+
+  private showRateTooltip(key: keyof Resources, yPos: number): void {
+    this.hideRateTooltip();
+    if (!this.lastState) return;
+
+    const state = this.lastState;
+    const entries: Array<{ name: string; rate: number }> = [];
+
+    // 1. Check Builder (when helping/awake, produces 2 wood / 10s)
+    if (key === 'wood' && (state.strangerState === 'awake' || state.strangerState === 'helping')) {
+      entries.push({ name: '陌生人', rate: 2 });
+    }
+
+    // 2. Check Workers
+    WORKER_JOBS.forEach((job) => {
+      let count = 0;
+      if (job.id === 'gatherers') {
+        count = VillageSystem.getInstance().getNumGatherers(state);
+      } else {
+        count = state.workers[job.id as keyof Workers] || 0;
+      }
+      if (count <= 0) return;
+
+      let netRatePerWorker = 0;
+      if (job.production[key] !== undefined) {
+        netRatePerWorker += job.production[key]!;
+      }
+      if (job.consumption[key] !== undefined) {
+        netRatePerWorker -= job.consumption[key]!;
+      }
+
+      if (netRatePerWorker !== 0) {
+        const cleanName = job.name.split(' ')[0];
+        const totalJobRate = netRatePerWorker * count;
+        entries.push({ name: cleanName, rate: totalJobRate });
+      }
+    });
+
+    if (entries.length === 0) return;
+
+    const totalRate = entries.reduce((acc, curr) => acc + curr.rate, 0);
+
+    const rowHeight = 20;
+    const padding = 8;
+    const boxW = 165;
+    const boxH = (entries.length + 1) * rowHeight + padding * 2;
+
+    this.rateTooltipBg.setSize(boxW, boxH);
+
+    entries.forEach((item, idx) => {
+      const rowY = padding + idx * rowHeight;
+      const rateStr = (item.rate > 0 ? `+${item.rate}` : `${item.rate}`) + ' / 10秒';
+
+      const nameTxt = this.scene.add.text(10, rowY, item.name, createTextStyle('12px', '#ffffff'));
+      const valTxt = this.scene.add.text(boxW - 10, rowY, rateStr, createTextStyle('12px', '#ffffff'));
+      valTxt.setOrigin(1, 0);
+
+      this.rateTooltipContainer.add([nameTxt, valTxt]);
+      this.rateTooltipRows.push(nameTxt, valTxt);
+    });
+
+    // Total row at bottom
+    const totalY = padding + entries.length * rowHeight;
+    const totalStr = (totalRate > 0 ? `+${totalRate}` : `${totalRate}`) + ' / 10秒';
+    const totalNameTxt = this.scene.add.text(10, totalY, '總計', createTextStyle('12px', '#ffffff', true));
+    const totalValTxt = this.scene.add.text(boxW - 10, totalY, totalStr, createTextStyle('12px', '#ffffff', true));
+    totalValTxt.setOrigin(1, 0);
+
+    this.rateTooltipContainer.add([totalNameTxt, totalValTxt]);
+    this.rateTooltipRows.push(totalNameTxt, totalValTxt);
+
+    // Position tooltip directly below/overlapping bottom-left of row (matching user screenshot media_1789049872206.png)
+    const targetY = yPos + 22;
+    this.rateTooltipContainer.setPosition(-15, targetY);
+    this.rateTooltipContainer.setVisible(true);
+  }
+
+  private hideRateTooltip(): void {
+    this.rateTooltipRows.forEach((r) => r.destroy());
+    this.rateTooltipRows = [];
+    this.rateTooltipContainer.setVisible(false);
   }
 }
 
