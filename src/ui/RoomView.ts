@@ -21,6 +21,10 @@ export class RoomView extends Phaser.GameObjects.Container {
   private trapBtn: TextButton;
   private cartBtn: TextButton;
   private hutBtn: TextButton;
+  private lodgeBtn: TextButton;
+  private tradingPostBtn: TextButton;
+  private tanneryBtn: TextButton;
+  private smokehouseBtn: TextButton;
   private unsubStoke?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 490) {
@@ -79,18 +83,18 @@ export class RoomView extends Phaser.GameObjects.Container {
       }
     });
 
-    // 3. Buildings Section
+    // 3. Buildings Section (140 x 38 buttons)
     this.buildingsTitle = scene.add.text(
       20,
-      190,
+      95,
       '建築物:',
       createTextStyle('13px', '#94a3b8')
     );
 
-    this.trapBtn = new TextButton(scene, 100, 225, {
-      text: '陷阱 (10 木材)',
-      width: 180,
-      height: 36,
+    this.trapBtn = new TextButton(scene, 90, 140, {
+      text: '陷阱',
+      width: 140,
+      height: 38,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
@@ -99,10 +103,10 @@ export class RoomView extends Phaser.GameObjects.Container {
       }
     });
 
-    this.cartBtn = new TextButton(scene, 100, 270, {
-      text: '貨車 (30 木材)',
-      width: 180,
-      height: 36,
+    this.cartBtn = new TextButton(scene, 90, 185, {
+      text: '貨車',
+      width: 140,
+      height: 38,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
@@ -111,14 +115,62 @@ export class RoomView extends Phaser.GameObjects.Container {
       }
     });
 
-    this.hutBtn = new TextButton(scene, 100, 315, {
-      text: '小屋 (100 木材)',
-      width: 180,
-      height: 36,
+    this.hutBtn = new TextButton(scene, 90, 230, {
+      text: '小屋',
+      width: 140,
+      height: 38,
       onClick: () => {
         const state = (scene as any).gameState as GameData;
         if (state) {
           VillageSystem.getInstance().build(state, 'huts');
+        }
+      }
+    });
+
+    this.lodgeBtn = new TextButton(scene, 90, 275, {
+      text: '狩獵小屋',
+      width: 140,
+      height: 38,
+      onClick: () => {
+        const state = (scene as any).gameState as GameData;
+        if (state) {
+          VillageSystem.getInstance().build(state, 'lodge');
+        }
+      }
+    });
+
+    this.tradingPostBtn = new TextButton(scene, 90, 320, {
+      text: '貿易站',
+      width: 140,
+      height: 38,
+      onClick: () => {
+        const state = (scene as any).gameState as GameData;
+        if (state) {
+          VillageSystem.getInstance().build(state, 'tradingPost');
+        }
+      }
+    });
+
+    this.tanneryBtn = new TextButton(scene, 90, 365, {
+      text: '製革屋',
+      width: 140,
+      height: 38,
+      onClick: () => {
+        const state = (scene as any).gameState as GameData;
+        if (state) {
+          VillageSystem.getInstance().build(state, 'tannery');
+        }
+      }
+    });
+
+    this.smokehouseBtn = new TextButton(scene, 90, 410, {
+      text: '燻肉房',
+      width: 140,
+      height: 38,
+      onClick: () => {
+        const state = (scene as any).gameState as GameData;
+        if (state) {
+          VillageSystem.getInstance().build(state, 'smokehouse');
         }
       }
     });
@@ -132,7 +184,11 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.buildingsTitle,
       this.trapBtn,
       this.cartBtn,
-      this.hutBtn
+      this.hutBtn,
+      this.lodgeBtn,
+      this.tradingPostBtn,
+      this.tanneryBtn,
+      this.smokehouseBtn
     ]);
 
     this.unsubStoke = EventBus.getInstance().on(Events.ACTION_STOKE_FIRE, () => {
@@ -191,11 +247,11 @@ export class RoomView extends Phaser.GameObjects.Container {
     // Dynamic vertical layout: match authentic A Dark Room
     let currentY = 25;
 
-    // Fire button (button center Y is currentY + 19)
+    // Fire button
     const fireBtnY = currentY + 19;
     this.lightFireBtn.setY(fireBtnY);
     this.stokeFireBtn.setY(fireBtnY);
-    currentY += 38 + 24;
+    currentY += 38 + 20;
 
     // Fire button logic
     if (state.fireState === 'dead') {
@@ -205,62 +261,76 @@ export class RoomView extends Phaser.GameObjects.Container {
     } else {
       this.lightFireBtn.setVisible(false);
       this.stokeFireBtn.setVisible(true);
-      this.stokeFireBtn.setText(state.unlockedForest ? '添柴 (1 木材)' : '添柴');
+      this.stokeFireBtn.setText('添柴');
       this.stokeFireBtn.setEnabled(!state.unlockedForest || state.resources.wood >= 1);
     }
 
     // Builder buildings logic
     const hasBuilder = state.strangerState === 'awake' || state.strangerState === 'helping';
     this.buildingsTitle.setVisible(hasBuilder);
-    this.trapBtn.setVisible(hasBuilder);
-    this.cartBtn.setVisible(hasBuilder);
-    this.hutBtn.setVisible(hasBuilder);
 
     if (hasBuilder) {
       this.buildingsTitle.setY(currentY);
-      currentY += this.buildingsTitle.height + 16;
+      currentY += this.buildingsTitle.height + 14;
 
-      this.trapBtn.setY(currentY + 18);
-      currentY += 36 + 10;
+      const placeBuildingBtn = (btn: TextButton, visible: boolean, enabled: boolean) => {
+        btn.setVisible(visible);
+        if (visible) {
+          btn.setX(90);
+          btn.setY(currentY + 19);
+          btn.setEnabled(enabled);
+          currentY += 38 + 8;
+        }
+      };
 
-      this.cartBtn.setY(currentY + 18);
-      currentY += 36 + 10;
-
-      this.hutBtn.setY(currentY + 18);
-      currentY += 36 + 10;
-
-      // Traps
+      // 1. Traps (10 + n*10 wood, max 10)
       const trapCount = state.buildings.traps || 0;
-      if (trapCount >= 10) {
-        this.trapBtn.setText('陷阱 (已達上限 10)');
-        this.trapBtn.setEnabled(false);
-      } else {
-        const trapCost = 10 + trapCount * 10;
-        this.trapBtn.setText(`陷阱 (${trapCost} 木材) [${trapCount}/10]`);
-        this.trapBtn.setEnabled(state.resources.wood >= trapCost);
-      }
+      const trapCost = 10 + trapCount * 10;
+      const canBuildTrap = trapCount < 10 && state.resources.wood >= trapCost;
+      placeBuildingBtn(this.trapBtn, true, canBuildTrap);
 
-      // Cart
+      // 2. Cart (30 wood, max 1, stays visible disabled once built)
       const cartCount = state.resources.cart || 0;
-      if (cartCount >= 1) {
-        this.cartBtn.setText('貨車 (已建造)');
-        this.cartBtn.setEnabled(false);
-      } else {
-        const cartCost = 30;
-        this.cartBtn.setText(`貨車 (${cartCost} 木材)`);
-        this.cartBtn.setEnabled(state.resources.wood >= cartCost);
-      }
+      const canBuildCart = cartCount === 0 && state.resources.wood >= 30;
+      placeBuildingBtn(this.cartBtn, true, canBuildCart);
 
-      // Huts (小屋)
+      // 3. Huts (100 + n*50 wood, max 20)
       const hutCount = state.buildings.huts || 0;
-      if (hutCount >= 20) {
-        this.hutBtn.setText('小屋 (已達上限 20)');
-        this.hutBtn.setEnabled(false);
-      } else {
-        const hutCost = 100 + hutCount * 50;
-        this.hutBtn.setText(`小屋 (${hutCost} 木材) [${hutCount}]`);
-        this.hutBtn.setEnabled(state.resources.wood >= hutCost);
-      }
+      const hutCost = 100 + hutCount * 50;
+      const canBuildHut = hutCount < 20 && state.resources.wood >= hutCost;
+      placeBuildingBtn(this.hutBtn, true, canBuildHut);
+
+      // 4. Lodge (狩獵小屋, unlocks when huts >= 1)
+      const showLodge = hutCount >= 1;
+      const lodgeCount = state.buildings.lodge || 0;
+      const canBuildLodge = lodgeCount === 0 && state.resources.wood >= 200 && state.resources.fur >= 10 && state.resources.meat >= 5;
+      placeBuildingBtn(this.lodgeBtn, showLodge, canBuildLodge);
+
+      // 5. Trading Post (貿易站, unlocks when lodge built)
+      const showTradingPost = lodgeCount > 0 || (state.buildings.tradingPost || 0) > 0;
+      const tpCount = state.buildings.tradingPost || 0;
+      const canBuildTp = tpCount === 0 && state.resources.wood >= 400 && state.resources.fur >= 100;
+      placeBuildingBtn(this.tradingPostBtn, showTradingPost, canBuildTp);
+
+      // 6. Tannery (製革屋, unlocks when fur >= 15 or tannery built)
+      const showTannery = (state.resources.fur >= 15) || (state.buildings.tannery || 0) > 0;
+      const tanneryCount = state.buildings.tannery || 0;
+      const canBuildTannery = tanneryCount === 0 && state.resources.wood >= 300 && state.resources.fur >= 150;
+      placeBuildingBtn(this.tanneryBtn, showTannery, canBuildTannery);
+
+      // 7. Smokehouse (燻肉房, unlocks when meat >= 15 or smokehouse built)
+      const showSmokehouse = (state.resources.meat >= 15) || (state.buildings.smokehouse || 0) > 0;
+      const smokehouseCount = state.buildings.smokehouse || 0;
+      const canBuildSmokehouse = smokehouseCount === 0 && state.resources.wood >= 600 && state.resources.meat >= 200;
+      placeBuildingBtn(this.smokehouseBtn, showSmokehouse, canBuildSmokehouse);
+    } else {
+      this.trapBtn.setVisible(false);
+      this.cartBtn.setVisible(false);
+      this.hutBtn.setVisible(false);
+      this.lodgeBtn.setVisible(false);
+      this.tradingPostBtn.setVisible(false);
+      this.tanneryBtn.setVisible(false);
+      this.smokehouseBtn.setVisible(false);
     }
   }
 

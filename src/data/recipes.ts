@@ -50,6 +50,29 @@ export const BUILDING_RECIPES: BuildingRecipe[] = [
     maxCount: 20
   },
   {
+    id: 'lodge',
+    name: '狩獵小屋 (Lodge)',
+    description: '深入森林狩獵的前進營地，解鎖獵人與陷阱師。',
+    cost: () => ({
+      wood: 200,
+      fur: 10,
+      meat: 5
+    }),
+    maxCount: 1,
+    unlockRequirement: (b) => (b.huts || 0) >= 1
+  },
+  {
+    id: 'tradingPost',
+    name: '貿易站 (Trading Post)',
+    description: '吸引過路商人，在此交易各類荒野物資。',
+    cost: () => ({
+      wood: 400,
+      fur: 100
+    }),
+    maxCount: 1,
+    unlockRequirement: (b) => (b.huts || 0) >= 1
+  },
+  {
     id: 'workshop',
     name: '工作坊 (Workshop)',
     description: '打造各類工具、防具與武器的專用作坊。',
@@ -109,25 +132,26 @@ export const BUILDING_RECIPES: BuildingRecipe[] = [
 export const WORKER_JOBS: WorkerJob[] = [
   {
     id: 'gatherers',
-    name: '伐木工 (Woodcutter)',
+    name: '伐木者',
     description: '在村莊周圍採集木材。',
-    production: { wood: 5 }, // +0.5/s
+    production: { wood: 1 }, // 1 wood / 10s per worker
     consumption: {}
   },
   {
     id: 'hunters',
-    name: '獵人 (Hunter)',
+    name: '獵人',
     description: '深入森林狩獵，提供生肉與毛皮。',
-    production: { meat: 3, fur: 2 },
-    consumption: {}
+    production: { meat: 0.5, fur: 0.5 }, // 0.5 meat, 0.5 fur / 10s
+    consumption: {},
+    requiredBuilding: 'lodge'
   },
   {
     id: 'trappers',
-    name: '陷阱工 (Trapper)',
-    description: '巡視並重置陷阱，提高產出效率並偶爾獲得尖牙與鱗片。',
-    production: { meat: 2, fur: 2, teeth: 0.5, scales: 0.2 },
-    consumption: {},
-    requiredBuilding: 'traps'
+    name: '陷阱師',
+    description: '製作誘餌並維護陷阱，消耗生肉轉化為誘餌。',
+    production: { bait: 1 }, // 1 bait / 10s
+    consumption: { meat: 1 }, // 1 meat / 10s
+    requiredBuilding: 'lodge'
   },
   {
     id: 'tanners',

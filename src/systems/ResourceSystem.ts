@@ -58,48 +58,59 @@ export class ResourceSystem {
   }
 
   public checkTraps(state: GameData): void {
-    const trapCount = state.buildings.traps;
-    if (trapCount <= 0) return;
+    const numTraps = state.buildings.traps || 0;
+    if (numTraps <= 0) return;
 
-    const hasBait = (state.trapBaitMeat || 0) > 0;
-    if (hasBait) {
-      state.trapBaitMeat = Math.max(0, state.trapBaitMeat - 1);
+    // Deduct bait: legacy trapBaitMeat consumes 1 per check; store bait consumes min(bait, traps)
+    let baitBonus = 0;
+    if (state.trapBaitMeat && state.trapBaitMeat > 0) {
+      state.trapBaitMeat -= 1;
+      baitBonus = numTraps;
+    } else if (state.resources.bait && state.resources.bait > 0) {
+      const baitUsed = Math.min(state.resources.bait, numTraps);
+      state.resources.bait -= baitUsed;
+      baitBonus = baitUsed;
     }
 
-    // Base catch calculation per trap
-    let totalMeat = 0;
-    let totalFur = 0;
-    let totalTeeth = 0;
-    let totalScales = 0;
+    const numDrops = numTraps + baitBonus;
+    const trapDrops = [
+      { rollUnder: 0.5, name: 'fur', label: '皮毛碎片' },
+      { rollUnder: 0.75, name: 'meat', label: '小片肉' },
+      { rollUnder: 0.85, name: 'scales', label: '古怪鱗片' },
+      { rollUnder: 0.93, name: 'teeth', label: '殘缺牙齒' },
+      { rollUnder: 0.995, name: 'cloth', label: '破爛布料' }
+    ];
 
-    const teethChance = hasBait ? 0.40 : 0.15;
-    const scalesChance = hasBait ? 0.25 : 0.08;
+    const drops: Record<string, number> = {};
+    const caughtLabels: string[] = [];
 
-    for (let i = 0; i < trapCount; i++) {
+    for (let i = 0; i < numDrops; i++) {
       const roll = Math.random();
-      if (roll < 0.6) {
-        totalMeat += Math.floor(Math.random() * 2) + 1;
-        totalFur += Math.floor(Math.random() * 2) + 1;
-      }
-      if (roll < teethChance) {
-        totalTeeth += 1;
-      }
-      if (roll < scalesChance) {
-        totalScales += 1;
+      for (const drop of trapDrops) {
+        if (roll < drop.rollUnder) {
+          drops[drop.name] = (drops[drop.name] || 0) + 1;
+          if (!caughtLabels.includes(drop.label)) {
+            caughtLabels.push(drop.label);
+          }
+          break;
+        }
       }
     }
 
-    state.resources.meat += totalMeat;
-    state.resources.fur += totalFur;
-    state.resources.teeth += totalTeeth;
-    state.resources.scales += totalScales;
+    // Apply drops to resources
+    for (const [resKey, amount] of Object.entries(drops)) {
+      state.resources[resKey as keyof Resources] = (state.resources[resKey as keyof Resources] || 0) + amount;
+    }
 
-    if (totalScales > 0) {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱捕獲到古怪鱗片。', 'story');
-    } else if (totalTeeth > 0) {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱捕獲到一些尖牙。', 'story');
-    } else if (totalMeat > 0 || totalFur > 0) {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱抓到了一些生肉和毛皮。', 'info');
+    if (caughtLabels.length > 0) {
+      let msg = '陷阱捕獲到';
+      if (caughtLabels.length === 1) {
+        msg += caughtLabels[0] + '。';
+      } else {
+        const last = caughtLabels.pop();
+        msg += caughtLabels.join('，') + '以及' + last + '。';
+      }
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, msg, 'story');
     } else {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱空空如也。', 'info');
     }

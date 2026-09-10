@@ -14,16 +14,60 @@ export class VillageSystem {
     return VillageSystem.instance;
   }
 
-  public getFreeVillagers(state: GameData): number {
-    let assigned = 0;
-    for (const count of Object.values(state.workers)) {
-      assigned += count;
+  private popGrowthTimer: number = 0;
+  private nextPopInterval: number = 15;
+
+  public getNumGatherers(state: GameData): number {
+    let nonGatherers = 0;
+    for (const [k, v] of Object.entries(state.workers)) {
+      if (k !== 'gatherers') {
+        nonGatherers += (v || 0);
+      }
     }
-    return Math.max(0, state.population - assigned);
+    return Math.max(0, state.population - nonGatherers);
+  }
+
+  public getFreeVillagers(state: GameData): number {
+    return this.getNumGatherers(state);
   }
 
   public getMaxPopulation(state: GameData): number {
-    return state.buildings.huts * 4;
+    return (state.buildings.huts || 0) * 4;
+  }
+
+  public tick(state: GameData, deltaSeconds: number): void {
+    const maxPop = this.getMaxPopulation(state);
+    if ((state.buildings.huts || 0) <= 0 || state.population >= maxPop) {
+      this.popGrowthTimer = 0;
+      return;
+    }
+
+    this.popGrowthTimer += deltaSeconds;
+    if (this.popGrowthTimer >= this.nextPopInterval) {
+      this.popGrowthTimer = 0;
+      this.nextPopInterval = 15 + Math.random() * 15;
+
+      const space = maxPop - state.population;
+      if (space > 0) {
+        let num = Math.floor(Math.random() * (space / 2) + space / 2);
+        if (num <= 0) num = 1;
+        num = Math.min(space, num);
+
+        state.population += num;
+        state.workers.gatherers = this.getNumGatherers(state);
+
+        if (num === 1) {
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '陌生人在夜裡抵達。', 'story');
+        } else if (num < 5) {
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '一戶飽經風雨的人家住進一棟小屋。', 'story');
+        } else if (num < 10) {
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '一小隊人風塵僕僕地抵達。', 'story');
+        } else {
+          EventBus.getInstance().emit(Events.LOG_MESSAGE, '村落越發興旺，消息不脛而走。', 'story');
+        }
+        EventBus.getInstance().emit(Events.STATE_CHANGED);
+      }
+    }
   }
 
   public build(state: GameData, buildingId: keyof Buildings): boolean {
@@ -32,7 +76,11 @@ export class VillageSystem {
 
     const currentCount = state.buildings[buildingId] || 0;
     if (recipe.maxCount && currentCount >= recipe.maxCount) {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '已達到該建築物的建造上限。', 'warn');
+      if (buildingId === 'traps') {
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '再增加陷阱已毫無裨益。', 'warn');
+      } else {
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '已達到該建築物的建造上限。', 'warn');
+      }
       return false;
     }
 
@@ -73,7 +121,13 @@ export class VillageSystem {
     if (buildingId === 'traps') {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '陷阱越多，抓到的獵物就越多。', 'story');
     } else if (buildingId === 'huts') {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '建造了簡陋的小屋，能為更多流浪者遮風避雨。', 'story');
+      if (currentCount === 0) {
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '建造者在林中建起一棟小屋，她說消息很快就會流傳出去。', 'story');
+      } else {
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, '一棟新小屋建成了。', 'story');
+      }
+    } else if (buildingId === 'lodge') {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '假如工具齊備，村民也能幫忙狩獵。', 'story');
     } else {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, `成功建造了【${recipe.name}】。`, 'info');
     }
@@ -82,8 +136,10 @@ export class VillageSystem {
   }
 
   public assignWorker(state: GameData, job: keyof Workers, delta: number): boolean {
+    if (job === 'gatherers') return false; // Gatherers is automatic default pool
+
     const current = state.workers[job] || 0;
-    const free = this.getFreeVillagers(state);
+    const free = this.getNumGatherers(state);
 
     if (delta > 0) {
       const jobDef = WORKER_JOBS.find((j) => j.id === job);
@@ -101,14 +157,16 @@ export class VillageSystem {
           return false;
         }
       }
-      if (free < delta) return false;
-      state.workers[job] = current + delta;
+      const actualAdd = Math.min(free, delta);
+      if (actualAdd <= 0) return false;
+      state.workers[job] = current + actualAdd;
     } else if (delta < 0) {
       const reduceAmount = Math.min(current, Math.abs(delta));
       if (reduceAmount <= 0) return false;
       state.workers[job] = current - reduceAmount;
     }
 
+    state.workers.gatherers = this.getNumGatherers(state);
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
   }

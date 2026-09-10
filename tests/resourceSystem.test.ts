@@ -60,7 +60,7 @@ describe('ResourceSystem & Early Game Economy', () => {
 
     resourceSys.checkTraps(state);
 
-    // 1 bait should be consumed per check
+    // 1 bait should be consumed per trap checked
     assert.strictEqual(state.trapBaitMeat, 4);
     // At least meat and fur should be caught
     assert.ok(state.resources.meat > 0);

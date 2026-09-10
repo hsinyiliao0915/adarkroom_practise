@@ -161,21 +161,19 @@ export class TextButton extends Phaser.GameObjects.Container {
       this.borderRect.setStrokeStyle(1, theme.btnDisabledBorderHex, 0.4);
       this.label.setBlendMode(Phaser.BlendModes.NORMAL);
       this.label.setColor(theme.btnDisabledText);
+      this.label.setAlpha(0.4);
     } else if (this.isCooldown) {
       this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
-      this.borderRect.setStrokeStyle(1, theme.btnBorderHex, 0.8);
-      if (theme.mode === 'dark') {
-        this.label.setColor('#ffffff');
-        this.label.setBlendMode(Phaser.BlendModes.DIFFERENCE);
-      } else {
-        this.label.setBlendMode(Phaser.BlendModes.NORMAL);
-        this.label.setColor(theme.textMuted);
-      }
+      this.borderRect.setStrokeStyle(1, 0x555555, 0.8);
+      this.label.setBlendMode(Phaser.BlendModes.NORMAL);
+      this.label.setColor('#555555');
+      this.label.setAlpha(0.45);
     } else {
       this.bgRect.setFillStyle(theme.btnBgNormalHex, theme.btnBgNormalAlpha);
       this.borderRect.setStrokeStyle(1, theme.btnBorderHex, theme.btnBorderAlpha);
       this.label.setBlendMode(Phaser.BlendModes.NORMAL);
       this.label.setColor(theme.btnText);
+      this.label.setAlpha(1.0);
     }
   }
 }

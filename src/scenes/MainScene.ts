@@ -174,7 +174,6 @@ export class MainScene extends Phaser.Scene {
     const tabDefs: Array<{ key: ActiveTab; label: string }> = [
       { key: 'room', label: '生火間' },
       { key: 'forest', label: '靜謐森林' },
-      { key: 'village', label: '聚落' },
       { key: 'craft', label: '工作坊' },
       { key: 'map', label: '荒野探索' },
       { key: 'ship', label: '星艦' }
@@ -314,11 +313,27 @@ export class MainScene extends Phaser.Scene {
     this.refreshUI();
   }
 
+  private getOutsideTabTitle(): string {
+    const huts = this.gameState.buildings.huts || 0;
+    if (huts === 0) return '靜謐森林';
+    if (huts === 1) return '孤獨小屋';
+    if (huts <= 4) return '小型村落';
+    if (huts <= 8) return '中型村落';
+    if (huts <= 14) return '大型村落';
+    return '繁榮村莊';
+  }
+
   private updateTabsLayout(): void {
     let currentX = 320;
     let visibleTabs: TabItem[] = [];
 
     this.inlineTabs.forEach((tab) => {
+      if (tab.key === 'forest') {
+        const title = this.getOutsideTabTitle();
+        tab.label = title;
+        tab.textObj.setText(title);
+      }
+
       const isUnlocked = Boolean(this.gameState.unlockedTabs[tab.key]);
       if (isUnlocked) {
         tab.textObj.setVisible(true);
@@ -369,6 +384,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   public switchTab(tab: ActiveTab): void {
+    if (tab === 'village') tab = 'forest';
     this.gameState.activeTab = tab;
 
     if (tab === 'forest' && !this.gameState.hasVisitedForest) {
@@ -378,7 +394,7 @@ export class MainScene extends Phaser.Scene {
 
     this.roomView.setVisible(tab === 'room');
     this.outsideView.setVisible(tab === 'forest');
-    this.villageView.setVisible(tab === 'village');
+    this.villageView.setVisible(false);
     this.craftView.setVisible(tab === 'craft');
     this.mapView.setVisible(tab === 'map');
     this.shipView.setVisible(tab === 'ship');
@@ -406,13 +422,12 @@ export class MainScene extends Phaser.Scene {
     // Update views
     if (this.roomView.visible) this.roomView.updateDisplay(this.gameState);
     if (this.outsideView.visible) this.outsideView.updateDisplay(this.gameState);
-    if (this.villageView.visible) this.villageView.updateDisplay(this.gameState);
     if (this.craftView.visible) this.craftView.updateDisplay(this.gameState);
     if (this.mapView.visible) this.mapView.updateDisplay(this.gameState);
     if (this.shipView.visible) this.shipView.updateDisplay(this.gameState);
 
     // Update resource sidebar
-    this.resourcePanel.updateDisplay(this.gameState);
+    this.resourcePanel.updateDisplay(this.gameState, this.gameState.activeTab);
   }
 
   update(_time: number, delta: number): void {

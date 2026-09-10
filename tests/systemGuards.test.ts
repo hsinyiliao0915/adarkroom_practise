@@ -136,5 +136,44 @@ describe('System Guards & Domain Invariants', () => {
       assert.strictEqual(result, true);
       assert.strictEqual(state.workers.ironMiners, 1);
     });
+
+    test('lodge should reject building if huts < 1 and succeed if huts >= 1', () => {
+      const state = createMockGameState({
+        buildings: { huts: 0, lodge: 0 },
+        resources: { wood: 500, fur: 50, meat: 50 }
+      });
+
+      assert.strictEqual(villageSys.build(state, 'lodge'), false);
+
+      state.buildings.huts = 1;
+      assert.strictEqual(villageSys.build(state, 'lodge'), true);
+      assert.strictEqual(state.buildings.lodge, 1);
+      assert.strictEqual(state.resources.wood, 300);
+    });
+
+    test('getNumGatherers should dynamically calculate remaining unassigned villagers', () => {
+      const state = createMockGameState({
+        population: 8,
+        buildings: { lodge: 1 },
+        workers: { hunters: 2, trappers: 2 }
+      });
+
+      assert.strictEqual(villageSys.getNumGatherers(state), 4);
+
+      villageSys.assignWorker(state, 'hunters', 1);
+      assert.strictEqual(state.workers.hunters, 3);
+      assert.strictEqual(villageSys.getNumGatherers(state), 3);
+    });
+
+    test('max traps 10 should reject additional construction', () => {
+      const state = createMockGameState({
+        buildings: { traps: 10 },
+        resources: { wood: 1000 }
+      });
+
+      const result = villageSys.build(state, 'traps');
+      assert.strictEqual(result, false);
+      assert.strictEqual(state.buildings.traps, 10);
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { GameData } from './GameState';
 import { RoomSystem } from '../systems/RoomSystem';
 import { ResourceSystem } from '../systems/ResourceSystem';
+import { VillageSystem } from '../systems/VillageSystem';
 import { StoryEventSystem } from '../systems/StoryEventSystem';
 import { EventBus, Events } from './EventBus';
 
@@ -36,7 +37,10 @@ export class TickEngine {
       // 2. Resource & worker tick
       ResourceSystem.getInstance().tick(state, deltaSeconds);
 
-      // 3. Authentic story events tick
+      // 3. Village population growth tick
+      VillageSystem.getInstance().tick(state, deltaSeconds);
+
+      // 4. Authentic story events tick
       StoryEventSystem.getInstance().tick(state, deltaSeconds);
 
       EventBus.getInstance().emit(Events.STATE_CHANGED);

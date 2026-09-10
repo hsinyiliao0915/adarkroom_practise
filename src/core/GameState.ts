@@ -24,6 +24,8 @@ export interface Resources {
   torches: number;
   bullets: number;
   alienAlloy: number;
+  cloth: number;
+  bait: number;
   // Unique / equipment counters
   cart: number;
   wagon: number;
@@ -38,6 +40,8 @@ export interface Resources {
 export interface Buildings {
   huts: number;
   traps: number;
+  lodge: number;
+  tradingPost: number;
   smokehouse: number;
   workshop: number;
   tannery: number;
@@ -201,6 +205,8 @@ export const INITIAL_GAME_DATA: GameData = {
     torches: 0,
     bullets: 0,
     alienAlloy: 0,
+    cloth: 0,
+    bait: 0,
     cart: 0,
     wagon: 0,
     canteenLevel: 0,
@@ -214,6 +220,8 @@ export const INITIAL_GAME_DATA: GameData = {
   buildings: {
     huts: 0,
     traps: 0,
+    lodge: 0,
+    tradingPost: 0,
     smokehouse: 0,
     workshop: 0,
     tannery: 0,
