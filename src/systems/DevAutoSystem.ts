@@ -1,6 +1,7 @@
 import { GameData } from '../core/GameState';
 import { RoomSystem } from './RoomSystem';
 import { ResourceSystem } from './ResourceSystem';
+import { StoryEventSystem } from './StoryEventSystem';
 import { EventBus, Events } from '../core/EventBus';
 
 export class DevAutoSystem {
@@ -113,5 +114,23 @@ export class DevAutoSystem {
       this.checkTrapsCooldownMs = DevAutoSystem.TRAP_INTERVAL_MS;
       EventBus.getInstance().emit(Events.ACTION_CHECK_TRAPS);
     }
+
+    // 4. Auto handle active story event modal
+    const activeEv = StoryEventSystem.getInstance().getActiveEvent();
+    if (activeEv) {
+      const keys = Object.keys(activeEv.scene.buttons);
+      for (const k of keys) {
+        const choice = activeEv.scene.buttons[k];
+        if (StoryEventSystem.getInstance().canAffordChoice(choice, state)) {
+          StoryEventSystem.getInstance().selectChoice(k, state);
+          break;
+        }
+      }
+    }
+  }
+
+  public destroy(): void {
+    this.unsubActions.forEach((unsub) => unsub());
+    this.unsubActions = [];
   }
 }

@@ -13,8 +13,10 @@ import { MapView } from '../ui/MapView';
 import { ShipView } from '../ui/ShipView';
 import { SpaceFlightView } from '../ui/SpaceFlightView';
 import { SaveLoadModal } from '../ui/SaveLoadModal';
+import { EventModal } from '../ui/EventModal';
 import { RoomSystem } from '../systems/RoomSystem';
 import { DevAutoSystem } from '../systems/DevAutoSystem';
+import { StoryEventSystem } from '../systems/StoryEventSystem';
 import { createTextStyle } from '../config/typography';
 import { ThemeManager } from '../config/ThemeManager';
 
@@ -39,6 +41,7 @@ export class MainScene extends Phaser.Scene {
   private shipView!: ShipView;
   private spaceFlightView!: SpaceFlightView;
   private saveLoadModal!: SaveLoadModal;
+  private eventModal!: EventModal;
 
   private inlineTabs: TabItem[] = [];
   private activeUnderline!: Phaser.GameObjects.Rectangle;
@@ -98,6 +101,7 @@ export class MainScene extends Phaser.Scene {
         const newGame = SaveManager.getInstance().startNewGame();
         this.gameState = newGame.state;
         RoomSystem.getInstance().resetTimers();
+        StoryEventSystem.getInstance().reset();
         this.resourcePanel.resetDiscovered(this.gameState);
         this.switchTab('room');
         this.logPanel.initFromState(this.gameState);
@@ -111,8 +115,9 @@ export class MainScene extends Phaser.Scene {
     this.resourcePanel.resetDiscovered(this.gameState);
     RoomSystem.getInstance().resetTimers();
 
-    // 4. Create Save/Load Modal
+    // 4. Create Modals
     this.saveLoadModal = new SaveLoadModal(this);
+    this.eventModal = new EventModal(this);
 
     // 5. Switch to current tab
     this.switchTab(this.gameState.activeTab);
@@ -140,6 +145,7 @@ export class MainScene extends Phaser.Scene {
     this.events.on('destroy', () => {
       if (this.unsubTheme) this.unsubTheme();
       if (this.unsubAutoMode) this.unsubAutoMode();
+      if (this.eventModal) this.eventModal.destroy();
     });
 
     // 7. Start Tick Engine & AutoSave
@@ -253,6 +259,7 @@ export class MainScene extends Phaser.Scene {
         const newGame = SaveManager.getInstance().startNewGame();
         this.gameState = newGame.state;
         RoomSystem.getInstance().resetTimers();
+        StoryEventSystem.getInstance().reset();
         this.resourcePanel.resetDiscovered(this.gameState);
         this.switchTab('room');
         this.logPanel.initFromState(this.gameState);

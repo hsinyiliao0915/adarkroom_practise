@@ -55,6 +55,9 @@ export interface ThemePalette {
   modalBackdropAlpha: number;
   modalDividerHex: number;
   modalSlotBgHex: number;
+  eventModalBgHex: number;
+  eventModalBorderHex: number;
+  eventModalText: string;
   // Utility navigation (top right)
   navText: string;
   navTextHover: string;
@@ -110,6 +113,9 @@ export const DARK_THEME: ThemePalette = {
   modalBackdropAlpha: 0.75,
   modalDividerHex: 0x262626,
   modalSlotBgHex: 0x171717,
+  eventModalBgHex: 0x5a5a5a,
+  eventModalBorderHex: 0x1a1a1a,
+  eventModalText: '#ffffff',
 
   navText: '#e5e5e5',
   navTextHover: '#ffffff',
@@ -165,6 +171,9 @@ export const LIGHT_THEME: ThemePalette = {
   modalBackdropAlpha: 0.35,
   modalDividerHex: 0xe5e5e5,
   modalSlotBgHex: 0xf5f5f5,
+  eventModalBgHex: 0xd8d8d8,
+  eventModalBorderHex: 0x666666,
+  eventModalText: '#000000',
 
   navText: '#262626',
   navTextHover: '#000000',
