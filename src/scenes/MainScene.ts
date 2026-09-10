@@ -371,6 +371,11 @@ export class MainScene extends Phaser.Scene {
   public switchTab(tab: ActiveTab): void {
     this.gameState.activeTab = tab;
 
+    if (tab === 'forest' && !this.gameState.hasVisitedForest) {
+      this.gameState.hasVisitedForest = true;
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '天色陰沉，風無情地刮著。', 'story');
+    }
+
     this.roomView.setVisible(tab === 'room');
     this.outsideView.setVisible(tab === 'forest');
     this.villageView.setVisible(tab === 'village');

@@ -140,8 +140,6 @@ export class RoomSystem {
         state.unlockedTabs.forest = true;
         EventBus.getInstance().emit(Events.LOG_MESSAGE, '屋外寒風呼嘯。', 'story');
         EventBus.getInstance().emit(Events.LOG_MESSAGE, '木頭就快燒完了。', 'story');
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '天色陰沉，風無情地刮著。', 'story');
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, '林地上散落著枯枝敗葉。', 'story');
         EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'forest');
         EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
         EventBus.getInstance().emit(Events.STATE_CHANGED);

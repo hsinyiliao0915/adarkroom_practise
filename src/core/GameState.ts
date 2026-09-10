@@ -125,6 +125,8 @@ export interface GameData {
   unlockedForest: boolean;
   unlockedBuilder: boolean;
   unlockedCompass: boolean;
+  hasVisitedForest?: boolean;
+  hasGatheredWood?: boolean;
   
   resources: Resources;
   buildings: Buildings;
@@ -182,6 +184,8 @@ export const INITIAL_GAME_DATA: GameData = {
   unlockedForest: false,
   unlockedBuilder: false,
   unlockedCompass: false,
+  hasVisitedForest: false,
+  hasGatheredWood: false,
 
   resources: {
     wood: 0,

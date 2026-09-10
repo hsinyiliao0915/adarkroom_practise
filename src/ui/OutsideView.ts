@@ -14,9 +14,9 @@ export class OutsideView extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     // 1. Gather Wood (伐木)
-    this.gatherWoodBtn = new TextButton(scene, 100, 30, {
+    this.gatherWoodBtn = new TextButton(scene, 90, 44, {
       text: '伐木',
-      width: 180,
+      width: 140,
       height: 38,
       cooldownMs: 60000,
       onClick: () => {
@@ -29,9 +29,9 @@ export class OutsideView extends Phaser.GameObjects.Container {
     });
 
     // 2. Check Traps (查看陷阱)
-    this.checkTrapsBtn = new TextButton(scene, 100, 78, {
+    this.checkTrapsBtn = new TextButton(scene, 90, 92, {
       text: '查看陷阱',
-      width: 180,
+      width: 140,
       height: 38,
       cooldownMs: 90000,
       onClick: () => {
@@ -44,9 +44,9 @@ export class OutsideView extends Phaser.GameObjects.Container {
     });
 
     // 3. Bait Traps (投放誘餌)
-    this.baitTrapsBtn = new TextButton(scene, 100, 126, {
+    this.baitTrapsBtn = new TextButton(scene, 90, 140, {
       text: '投放誘餌 (1 生肉)',
-      width: 180,
+      width: 140,
       height: 34,
       fontSize: '12px',
       cooldownMs: 1000,
@@ -62,12 +62,12 @@ export class OutsideView extends Phaser.GameObjects.Container {
 
     this.unsubList.push(
       EventBus.getInstance().on(Events.ACTION_GATHER_WOOD, () => {
-        this.gatherWoodBtn.triggerCooldown(3500);
+        this.gatherWoodBtn.triggerCooldown(60000);
       })
     );
     this.unsubList.push(
       EventBus.getInstance().on(Events.ACTION_CHECK_TRAPS, () => {
-        this.checkTrapsBtn.triggerCooldown(8000);
+        this.checkTrapsBtn.triggerCooldown(90000);
       })
     );
 
@@ -90,12 +90,13 @@ export class OutsideView extends Phaser.GameObjects.Container {
     }
 
     // Dynamic stacking of visible buttons
-    let currentY = 30;
+    let currentY = 44;
     const btnList = [this.gatherWoodBtn, this.checkTrapsBtn, this.baitTrapsBtn];
     for (const btn of btnList) {
       if (btn.visible) {
+        btn.setX(90);
         btn.setY(currentY);
-        currentY += 46;
+        currentY += 48;
       }
     }
   }

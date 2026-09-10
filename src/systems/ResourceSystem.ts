@@ -20,14 +20,21 @@ export class ResourceSystem {
     if (state.resources.wagon > 0) amount = 100;
 
     state.resources.wood += amount;
-    const gatherMsgs = [
-      '林地上散落著枯枝敗葉。',
-      '乾燥的枯枝在腳下碎裂。',
-      '林間吹過刺骨的寒風。',
-      '收集到了足夠燃燒的木頭。'
-    ];
-    const randMsg = gatherMsgs[Math.floor(Math.random() * gatherMsgs.length)];
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, randMsg, 'info');
+
+    if (!state.hasGatheredWood) {
+      state.hasGatheredWood = true;
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '林地上散落著枯枝敗葉。', 'story');
+    } else {
+      const gatherMsgs = [
+        '林地上散落著枯枝敗葉。',
+        '乾燥的枯枝在腳下碎裂。',
+        '林間吹過刺骨的寒風。',
+        '收集到了足夠燃燒的木頭。'
+      ];
+      const randMsg = gatherMsgs[Math.floor(Math.random() * gatherMsgs.length)];
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, randMsg, 'info');
+    }
+
     EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     return amount;
   }

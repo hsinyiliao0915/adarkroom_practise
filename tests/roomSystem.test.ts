@@ -1,6 +1,7 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import { RoomSystem } from '../src/systems/RoomSystem.ts';
+import { EventBus, Events } from '../src/core/EventBus.ts';
 import { createMockGameState } from './helpers/mockState.ts';
 
 describe('RoomSystem & Opening Progression (1:1 ADR)', () => {
@@ -123,5 +124,34 @@ describe('RoomSystem & Opening Progression (1:1 ADR)', () => {
     assert.strictEqual(state.strangerState, 'awake');
     assert.strictEqual(state.unlockedBuilder, true);
     assert.strictEqual(state.unlockedTabs.village, true);
+  });
+
+  test('forest unlock logs exactly wind and wood running out, not forest arrival or gather messages', () => {
+    const state = createMockGameState({
+      fireState: 'dead',
+      fireFuel: 0,
+      warmthLevel: 'freezing',
+      resources: { wood: 0 },
+      unlockedForest: false,
+      strangerState: 'none'
+    });
+
+    const logs: string[] = [];
+    const unsub = EventBus.getInstance().on(Events.LOG_MESSAGE, (msg) => {
+      logs.push(msg);
+    });
+
+    // Light fire and tick to stranger (8s) then forest (12s)
+    roomSys.lightFire(state);
+    roomSys.tick(state, 8.5);
+    roomSys.tick(state, 12.5);
+    unsub();
+
+    assert.strictEqual(state.unlockedForest, true);
+    assert.strictEqual(state.unlockedTabs.forest, true);
+    assert.ok(logs.includes('屋外寒風呼嘯。'));
+    assert.ok(logs.includes('木頭就快燒完了。'));
+    assert.strictEqual(logs.includes('天色陰沉，風無情地刮著。'), false, 'Forest arrival must NOT trigger on unlock');
+    assert.strictEqual(logs.includes('林地上散落著枯枝敗葉。'), false, 'Gather wood message must NOT trigger on unlock');
   });
 });
