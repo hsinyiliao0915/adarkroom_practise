@@ -208,7 +208,7 @@ export class MapSystem {
     } else {
       // Dehydrated
       state.expedition.hp -= 2;
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, '水壺乾涸了，極度乾渴正在侵蝕你的體力！(-2 生命值)', 'warn');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '水壺乾涸了，極度乾渴正在侵蝕你的體力。', 'warn');
       if (state.expedition.hp <= 0) {
         this.dieInWilderness(state);
         return false;
@@ -257,9 +257,9 @@ export class MapSystem {
     state.expedition.curedMeat -= 1;
     const healAmount = 10;
     state.expedition.hp = Math.min(state.expedition.maxHp, state.expedition.hp + healAmount);
-    EventBus.getInstance().emit(Events.LOG_MESSAGE, `你吃下一塊肉乾，恢復了 ${healAmount} 點生命值。(當前: ${state.expedition.hp}/${state.expedition.maxHp})`, 'story');
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, `你吃下一塊肉乾，體力逐漸恢復。`, 'story');
     if (state.expedition.inCombat) {
-      state.expedition.combatLog.push(`吃下肉乾，恢復了 ${healAmount} 點生命值！`);
+      state.expedition.combatLog.push(`吃下肉乾，恢復了體力！`);
     }
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
@@ -277,7 +277,7 @@ export class MapSystem {
         return;
       }
       state.expedition.torches -= 1;
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, `你點燃了一支火把照亮深邃通道。(-1 火把)`, 'info');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, `你點燃了一支火把照亮深邃通道。`, 'info');
     }
 
     if (landmark.loot) {

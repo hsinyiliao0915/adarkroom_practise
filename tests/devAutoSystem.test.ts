@@ -46,7 +46,7 @@ describe('DevAutoSystem', () => {
     devAuto.update(100, state);
 
     assert.strictEqual(state.fireState, 'burning');
-    assert.strictEqual(state.warmthLevel, 'cold');
+    assert.strictEqual(state.warmthLevel, 'freezing');
   });
 
   test('automatically stokes fire when fire is flickering', () => {

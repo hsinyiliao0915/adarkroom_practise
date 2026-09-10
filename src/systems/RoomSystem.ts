@@ -9,7 +9,7 @@ export class RoomSystem {
   private forestUnlockTimer: number = -1;
   private strangerWarmTimer: number = 15;
   private strangerWarmStage: number = 0;
-  private warmthAdjustTimer: number = 0;
+  private warmthPoints: number = 0;
 
   private constructor() {}
 
@@ -25,7 +25,7 @@ export class RoomSystem {
     this.forestUnlockTimer = -1;
     this.strangerWarmTimer = 15;
     this.strangerWarmStage = 0;
-    this.warmthAdjustTimer = 0;
+    this.warmthPoints = 0;
   }
 
   public lightFire(state: GameData): boolean {
@@ -33,7 +33,8 @@ export class RoomSystem {
 
     state.fireFuel = 60;
     state.fireState = 'burning';
-    state.warmthLevel = 'cold';
+    state.warmthLevel = 'freezing';
+    this.warmthPoints = 0;
     // Authentic ADR: do NOT set wood here! Wood remains 0 until forest unlock.
     
     EventBus.getInstance().emit(Events.LOG_MESSAGE, '火堆燃燒著。', 'story');
@@ -41,7 +42,6 @@ export class RoomSystem {
     
     // Stranger will arrive in ~8 seconds
     this.strangerArrivalTimer = 8;
-    this.warmthAdjustTimer = 10;
 
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
@@ -114,12 +114,8 @@ export class RoomSystem {
       }
     }
 
-    // Warmth level gradual adjustment
-    this.warmthAdjustTimer -= deltaSeconds;
-    if (this.warmthAdjustTimer <= 0) {
-      this.warmthAdjustTimer = 12;
-      this.adjustWarmth(state);
-    }
+    // Warmth level gradual adjustment based on fire heat points
+    this.adjustWarmth(state, deltaSeconds);
 
     // 1. Opening sequence: Stranger arrival
     if (this.strangerArrivalTimer > 0) {
@@ -183,34 +179,57 @@ export class RoomSystem {
     }
   }
 
-  private adjustWarmth(state: GameData): void {
-    const warmthOrder: WarmthLevel[] = ['freezing', 'cold', 'mild', 'warm'];
-    const warmthMsg: Record<WarmthLevel, string> = {
-      freezing: '房間寒冷刺骨。',
-      cold: '房間很冷。',
-      mild: '房間很宜人。',
-      warm: '房間很熱。'
-    };
-    const currentIdx = warmthOrder.indexOf(state.warmthLevel);
+  private adjustWarmth(state: GameData, deltaSeconds: number): void {
     const oldLevel = state.warmthLevel;
 
-    if (state.fireState === 'dead') {
-      if (currentIdx > 0) {
-        state.warmthLevel = warmthOrder[currentIdx - 1];
-      }
-    } else if (state.fireState === 'burning' || state.fireState === 'roaring') {
-      if (currentIdx < warmthOrder.length - 1) {
-        state.warmthLevel = warmthOrder[currentIdx + 1];
-      }
-    } else if (state.fireState === 'flickering') {
-      // Holds around mild
-      if (currentIdx < 2) {
-        state.warmthLevel = warmthOrder[currentIdx + 1];
-      }
+    // Initialize warmthPoints from current state warmthLevel if needed
+    if (this.warmthPoints === 0 && state.warmthLevel !== 'freezing') {
+      const initPoints: Record<WarmthLevel, number> = {
+        freezing: 0,
+        cold: 35,
+        mild: 65,
+        warm: 95
+      };
+      this.warmthPoints = initPoints[state.warmthLevel] || 0;
     }
 
-    if (state.warmthLevel !== oldLevel) {
-      EventBus.getInstance().emit(Events.LOG_MESSAGE, warmthMsg[state.warmthLevel], 'story');
+    // Accumulate warmth points depending on fire intensity
+    if (state.fireState === 'roaring') {
+      this.warmthPoints += 0.8 * deltaSeconds;
+    } else if (state.fireState === 'burning') {
+      this.warmthPoints += 0.4 * deltaSeconds;
+    } else if (state.fireState === 'flickering') {
+      if (this.warmthPoints > 35) this.warmthPoints -= 0.3 * deltaSeconds;
+      else this.warmthPoints += 0.1 * deltaSeconds;
+    } else if (state.fireState === 'smoldering') {
+      this.warmthPoints -= 0.8 * deltaSeconds;
+    } else if (state.fireState === 'dead') {
+      this.warmthPoints -= 2.0 * deltaSeconds;
+    }
+
+    this.warmthPoints = Math.max(0, Math.min(100, this.warmthPoints));
+
+    let newLevel: WarmthLevel = 'freezing';
+    if (this.warmthPoints >= 85) {
+      newLevel = 'warm';
+    } else if (this.warmthPoints >= 55) {
+      newLevel = 'mild';
+    } else if (this.warmthPoints >= 25) {
+      newLevel = 'cold';
+    } else {
+      newLevel = 'freezing';
+    }
+
+    state.warmthLevel = newLevel;
+
+    if (newLevel !== oldLevel) {
+      const warmthMsg: Record<WarmthLevel, string> = {
+        freezing: '房間寒冷刺骨。',
+        cold: '房間很冷。',
+        mild: '房間很宜人。',
+        warm: '房間很熱。'
+      };
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, warmthMsg[newLevel], 'story');
       EventBus.getInstance().emit(Events.STATE_CHANGED);
     }
   }

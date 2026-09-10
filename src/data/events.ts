@@ -22,7 +22,7 @@ export const RANDOM_VILLAGE_EVENTS: GameEvent[] = [
       const space = maxPop - state.population;
       const count = Math.min(space, Math.floor(Math.random() * 2) + 1);
       state.population += count;
-      return `一小隊飢寒交迫的流民在村落尋求庇護。(${count} 位新村民加入)`;
+      return `一小隊飢寒交迫的流民在村落尋求庇護，加入了村莊。`;
     }
   },
   {
@@ -36,7 +36,7 @@ export const RANDOM_VILLAGE_EVENTS: GameEvent[] = [
       const ironGained = teethTraded * 2;
       state.resources.teeth -= teethTraded;
       state.resources.iron += ironGained;
-      return `一名戴著兜帽的神秘商人悄悄造訪，用 ${ironGained} 塊精鐵換走了你收集的 ${teethTraded} 顆尖牙。`;
+      return `一名戴著兜帽的神秘商人悄悄造訪，用精鐵換走了你收集的尖牙。`;
     }
   },
   {
@@ -52,7 +52,7 @@ export const RANDOM_VILLAGE_EVENTS: GameEvent[] = [
       } else {
         const lostMeat = Math.min(state.resources.meat, 15);
         state.resources.meat -= lostMeat;
-        return `一陣低吼撕破了黑夜，幾隻野獸闖入村莊掠奪了肉品儲藏。(-${lostMeat} 生肉)`;
+        return `一陣低吼撕破了黑夜，幾隻野獸闖入村莊掠奪了肉品儲藏。`;
       }
     }
   },
@@ -63,7 +63,7 @@ export const RANDOM_VILLAGE_EVENTS: GameEvent[] = [
     frequency: 20,
     onTrigger: (state) => {
       state.resources.wood += 25;
-      return `暴風雨過後，森林邊緣散落著許多被狂風吹斷的乾燥巨木。(+25 木材)`;
+      return `暴風雨過後，森林邊緣散落著許多被狂風吹斷的乾燥巨木。`;
     }
   },
   {
