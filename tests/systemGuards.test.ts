@@ -177,5 +177,37 @@ describe('System Guards & Domain Invariants', () => {
       assert.strictEqual(result, false);
       assert.strictEqual(state.buildings.traps, 10);
     });
+
+    test('buyGood should reject purchase if resources insufficient', () => {
+      const state = createMockGameState({
+        buildings: { tradingPost: 1 },
+        resources: { fur: 100 }
+      });
+
+      const result = villageSys.buyGood(state, 'scales');
+      assert.strictEqual(result, false);
+      assert.strictEqual(state.resources.scales, 0);
+    });
+
+    test('buyGood compass should deduct cost, grant compass, and unlock map tab', () => {
+      const state = createMockGameState({
+        buildings: { tradingPost: 1 },
+        resources: { fur: 500, scales: 30, teeth: 20 },
+        unlockedTabs: { room: true, forest: true, craft: false, map: false, ship: false }
+      });
+
+      const result = villageSys.buyGood(state, 'compass');
+      assert.strictEqual(result, true);
+      assert.strictEqual(state.resources.compass, 1);
+      assert.strictEqual(state.resources.fur, 100);
+      assert.strictEqual(state.resources.scales, 10);
+      assert.strictEqual(state.resources.teeth, 10);
+      assert.strictEqual(state.unlockedTabs.map, true);
+      assert.strictEqual(state.unlockedCompass, true);
+
+      // Repeat purchase should be rejected (maxCount: 1)
+      assert.strictEqual(villageSys.buyGood(state, 'compass'), false);
+    });
   });
 });
+

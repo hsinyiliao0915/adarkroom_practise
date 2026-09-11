@@ -283,3 +283,97 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
     requiresWorkshop: true
   }
 ];
+
+export interface TradeGood {
+  id: string;
+  name: string;
+  buttonLabel: string;
+  description: string;
+  cost: Partial<Record<keyof Resources, number>>;
+  maxCount?: number;
+  buildMsg?: string;
+  requiresSeen?: keyof Resources;
+}
+
+export const TRADE_GOODS: TradeGood[] = [
+  {
+    id: 'compass',
+    name: '羅盤 (指南針)',
+    buttonLabel: '羅盤',
+    description: '靈敏的磁針，解鎖荒野「大地圖探索」路線。',
+    cost: { fur: 400, scales: 20, teeth: 10 },
+    maxCount: 1,
+    buildMsg: '磁針在木盒裡旋轉，指向東北方。荒野探索已開啟。'
+  },
+  {
+    id: 'scales',
+    name: '古怪鱗片',
+    buttonLabel: '鱗片',
+    description: '從流浪商人處購買奇異生物的堅硬鱗片。',
+    cost: { fur: 150 },
+    buildMsg: '買下了一片古怪鱗片。'
+  },
+  {
+    id: 'teeth',
+    name: '殘缺牙齒',
+    buttonLabel: '牙齒',
+    description: '獵捕大型野獸留下的鋒利尖牙。',
+    cost: { fur: 300 },
+    buildMsg: '買下了一顆殘缺牙齒。'
+  },
+  {
+    id: 'bolas',
+    name: '投石索 (Bolas)',
+    buttonLabel: '投石索',
+    description: '繫著重物的皮繩，可在戰鬥中投擲絆倒野獸與敵人。',
+    cost: { teeth: 10 },
+    maxCount: 1,
+    buildMsg: '流浪商人交出了一副精緻的投石索。'
+  },
+  {
+    id: 'iron',
+    name: '精鐵',
+    buttonLabel: '精鐵',
+    description: '提煉好的純鐵塊。',
+    cost: { fur: 150, scales: 50 },
+    requiresSeen: 'iron',
+    buildMsg: '買入了一塊精鐵。'
+  },
+  {
+    id: 'coal',
+    name: '煤炭',
+    buttonLabel: '煤炭',
+    description: '優質黑煤。',
+    cost: { fur: 200, teeth: 50 },
+    requiresSeen: 'coal',
+    buildMsg: '買入了一塊黑煤。'
+  },
+  {
+    id: 'steel',
+    name: '鋼材',
+    buttonLabel: '鋼材',
+    description: '高強度鍛鋼。',
+    cost: { fur: 300, scales: 50, teeth: 50 },
+    requiresSeen: 'steel',
+    buildMsg: '買入了一塊硬鋼。'
+  },
+  {
+    id: 'medicine',
+    name: '藥物',
+    buttonLabel: '藥物',
+    description: '能夠迅速治癒重傷與疾病的珍貴藥品。',
+    cost: { scales: 50, teeth: 30 },
+    requiresSeen: 'medicine',
+    buildMsg: '買入了一份珍貴的藥物。'
+  },
+  {
+    id: 'bullets',
+    name: '子彈',
+    buttonLabel: '子彈',
+    description: '遠程火器專用彈藥。',
+    cost: { scales: 10 },
+    requiresSeen: 'bullets',
+    buildMsg: '買入了一發子彈。'
+  }
+];
+

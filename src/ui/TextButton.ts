@@ -119,13 +119,17 @@ export class TextButton extends Phaser.GameObjects.Container {
     if (!content) return;
 
     if (!this.tooltipContainer) {
-      this.tooltipContainer = this.scene.add.container(this.btnWidth / 2 + 12, 0);
+      this.tooltipContainer = this.scene.add.container(0, 0);
       this.tooltipBg = this.scene.add.rectangle(0, 0, 100, 40, 0x000000, 0.95);
       this.tooltipBg.setStrokeStyle(1, 0x555555, 0.9);
-      this.tooltipBg.setOrigin(0, 0.5);
       this.tooltipContainer.add(this.tooltipBg);
       this.add(this.tooltipContainer);
     }
+
+    const isNearRight = this.x > 200;
+    const ttX = isNearRight ? -(this.btnWidth / 2 + 10) : (this.btnWidth / 2 + 10);
+    this.tooltipContainer.setX(ttX);
+    this.tooltipBg!.setOrigin(isNearRight ? 1 : 0, 0.5);
 
     // Clear old texts
     this.tooltipRows.forEach((t) => t.destroy());
@@ -134,8 +138,8 @@ export class TextButton extends Phaser.GameObjects.Container {
     const theme = ThemeManager.getInstance().getTheme();
 
     if (typeof content === 'string') {
-      const txt = this.scene.add.text(10, 0, content, createTextStyle('12px', theme.textMuted));
-      txt.setOrigin(0, 0.5);
+      const txt = this.scene.add.text(isNearRight ? -10 : 10, 0, content, createTextStyle('12px', theme.textMuted));
+      txt.setOrigin(isNearRight ? 1 : 0, 0.5);
       this.tooltipContainer.add(txt);
       this.tooltipRows.push(txt);
 
@@ -149,11 +153,20 @@ export class TextButton extends Phaser.GameObjects.Container {
 
       content.forEach((item, idx) => {
         const y = startY + idx * rowHeight;
-        const keyTxt = this.scene.add.text(10, y, item.name, createTextStyle('12px', '#94a3b8'));
-        keyTxt.setOrigin(0, 0.5);
+        let keyTxt: Phaser.GameObjects.Text;
+        let valTxt: Phaser.GameObjects.Text;
 
-        const valTxt = this.scene.add.text(75, y, String(item.amount), createTextStyle('12px', '#ffffff'));
-        valTxt.setOrigin(0, 0.5);
+        if (isNearRight) {
+          valTxt = this.scene.add.text(-10, y, String(item.amount), createTextStyle('12px', '#ffffff'));
+          valTxt.setOrigin(1, 0.5);
+          keyTxt = this.scene.add.text(-75, y, item.name, createTextStyle('12px', '#94a3b8'));
+          keyTxt.setOrigin(1, 0.5);
+        } else {
+          keyTxt = this.scene.add.text(10, y, item.name, createTextStyle('12px', '#94a3b8'));
+          keyTxt.setOrigin(0, 0.5);
+          valTxt = this.scene.add.text(75, y, String(item.amount), createTextStyle('12px', '#ffffff'));
+          valTxt.setOrigin(0, 0.5);
+        }
 
         this.tooltipContainer!.add([keyTxt, valTxt]);
         this.tooltipRows.push(keyTxt, valTxt);

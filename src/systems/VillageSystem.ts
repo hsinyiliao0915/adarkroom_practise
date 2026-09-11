@@ -1,5 +1,5 @@
 import { GameData, Buildings, Workers, Resources } from '../core/GameState';
-import { BUILDING_RECIPES, WORKER_JOBS } from '../data/recipes';
+import { BUILDING_RECIPES, WORKER_JOBS, TRADE_GOODS } from '../data/recipes';
 import { EventBus, Events } from '../core/EventBus';
 
 export class VillageSystem {
@@ -143,9 +143,68 @@ export class VillageSystem {
       }
     } else if (buildingId === 'lodge') {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '假如工具齊備，村民也能幫忙狩獵。', 'story');
+    } else if (buildingId === 'tradingPost') {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '流浪商人現在有了落腳的地方，他們也許會多待上一陣子。', 'story');
     } else {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, `成功建造了【${recipe.name}】。`, 'info');
     }
+    EventBus.getInstance().emit(Events.STATE_CHANGED);
+    return true;
+  }
+
+  public buyGood(state: GameData, goodId: string): boolean {
+    const good = TRADE_GOODS.find((g) => g.id === goodId);
+    if (!good) return false;
+
+    const current = (state.resources as any)[good.id] || 0;
+    if (good.maxCount !== undefined && current >= good.maxCount) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, '該商品已達到購買上限。', 'warn');
+      return false;
+    }
+
+    const resNameMap: Record<string, string> = {
+      wood: '木頭',
+      fur: '毛皮',
+      meat: '肉',
+      curedMeat: '肉乾',
+      leather: '皮革',
+      teeth: '牙齒',
+      scales: '鱗片',
+      iron: '精鐵',
+      coal: '煤炭',
+      steel: '鋼材',
+      medicine: '藥物',
+      bullets: '子彈'
+    };
+
+    for (const [resKey, amount] of Object.entries(good.cost)) {
+      if ((state.resources[resKey as keyof Resources] || 0) < (amount || 0)) {
+        const name = resNameMap[resKey] || resKey;
+        EventBus.getInstance().emit(Events.LOG_MESSAGE, `${name}不夠了。`, 'warn');
+        return false;
+      }
+    }
+
+    for (const [resKey, amount] of Object.entries(good.cost)) {
+      state.resources[resKey as keyof Resources] -= (amount || 0);
+    }
+
+    (state.resources as any)[good.id] = current + 1;
+
+    if (good.id === 'compass') {
+      state.unlockedTabs.map = true;
+      state.unlockedCompass = true;
+      EventBus.getInstance().emit(Events.TAB_UNLOCKED, 'map');
+      EventBus.getInstance().emit(
+        Events.LOG_MESSAGE,
+        '磁針在木盒裡旋轉，指向東北方。荒野探索已開啟。',
+        'story'
+      );
+    } else if (good.buildMsg) {
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, good.buildMsg, 'story');
+    }
+
+    EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;
   }

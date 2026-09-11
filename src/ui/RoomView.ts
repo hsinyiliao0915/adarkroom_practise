@@ -7,6 +7,7 @@ import { CraftSystem } from '../systems/CraftSystem';
 import { createTextStyle } from '../config/typography';
 import { ThemeManager } from '../config/ThemeManager';
 import { EventBus, Events } from '../core/EventBus';
+import { TRADE_GOODS } from '../data/recipes';
 
 export class RoomView extends Phaser.GameObjects.Container {
   private statusText: Phaser.GameObjects.Text;
@@ -25,6 +26,11 @@ export class RoomView extends Phaser.GameObjects.Container {
   private tradingPostBtn: TextButton;
   private tanneryBtn: TextButton;
   private smokehouseBtn: TextButton;
+
+  // Trading Post Buy Section
+  private buyTitle: Phaser.GameObjects.Text;
+  private tradeGoodBtns: Map<string, TextButton> = new Map();
+
   private unsubStoke?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 490) {
@@ -190,6 +196,33 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.tanneryBtn,
       this.smokehouseBtn
     ]);
+
+    // 4. Trading Post Buy Section (260 x Y buttons, title at x = 190)
+    this.buyTitle = scene.add.text(
+      190,
+      95,
+      '購買:',
+      createTextStyle('13px', '#94a3b8')
+    );
+    this.buyTitle.setVisible(false);
+    this.add(this.buyTitle);
+
+    TRADE_GOODS.forEach((good) => {
+      const btn = new TextButton(scene, 260, 0, {
+        text: good.buttonLabel,
+        width: 140,
+        height: 38,
+        onClick: () => {
+          const state = (scene as any).gameState as GameData;
+          if (state) {
+            VillageSystem.getInstance().buyGood(state, good.id);
+          }
+        }
+      });
+      btn.setVisible(false);
+      this.tradeGoodBtns.set(good.id, btn);
+      this.add(btn);
+    });
 
     this.unsubStoke = EventBus.getInstance().on(Events.ACTION_STOKE_FIRE, () => {
       this.stokeFireBtn.triggerCooldown(10000);
@@ -412,6 +445,64 @@ export class RoomView extends Phaser.GameObjects.Container {
         ];
       });
       placeBuildingBtn(this.smokehouseBtn, Boolean(state.unlockedBuildings['smokehouse']), !isSmokehouseMaxed);
+
+      // 8. Trading Post Buy Section (購買:)
+      const hasTradingPost = (state.buildings.tradingPost || 0) > 0;
+      this.buyTitle.setVisible(hasTradingPost);
+      this.buyTitle.setColor(theme.textSecondary);
+
+      if (hasTradingPost) {
+        this.buyTitle.setPosition(190, this.buildingsTitle.y);
+        let currentBuyY = this.buildingsTitle.y + this.buildingsTitle.height + 14;
+
+        TRADE_GOODS.forEach((good) => {
+          const btn = this.tradeGoodBtns.get(good.id);
+          if (!btn) return;
+
+          let shouldShowGood = true;
+          if (good.requiresSeen) {
+            shouldShowGood = (state.resources[good.requiresSeen] || 0) > 0;
+          }
+
+          if (shouldShowGood) {
+            btn.setVisible(true);
+            btn.setX(260);
+            btn.setY(currentBuyY + 19);
+
+            const currentCount = (state.resources as any)[good.id] || 0;
+            const isMaxed = good.maxCount !== undefined && currentCount >= good.maxCount;
+
+            btn.setTooltipProvider(() => {
+              if (isMaxed) return '已購買';
+              const resMap: Record<string, string> = {
+                wood: '木頭',
+                fur: '毛皮',
+                meat: '肉',
+                curedMeat: '肉乾',
+                leather: '皮革',
+                teeth: '牙齒',
+                scales: '鱗片',
+                iron: '精鐵',
+                coal: '煤炭',
+                steel: '鋼材',
+                medicine: '藥物',
+                bullets: '子彈'
+              };
+              return Object.entries(good.cost).map(([resKey, amt]) => ({
+                name: resMap[resKey] || resKey,
+                amount: amt as number
+              }));
+            });
+
+            btn.setEnabled(!isMaxed);
+            currentBuyY += 38 + 8;
+          } else {
+            btn.setVisible(false);
+          }
+        });
+      } else {
+        this.tradeGoodBtns.forEach((btn) => btn.setVisible(false));
+      }
     } else {
       this.trapBtn.setVisible(false);
       this.cartBtn.setVisible(false);
@@ -420,6 +511,8 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.tradingPostBtn.setVisible(false);
       this.tanneryBtn.setVisible(false);
       this.smokehouseBtn.setVisible(false);
+      this.buyTitle.setVisible(false);
+      this.tradeGoodBtns.forEach((btn) => btn.setVisible(false));
     }
   }
 

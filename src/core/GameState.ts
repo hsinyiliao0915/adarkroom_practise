@@ -35,6 +35,8 @@ export interface Resources {
   ironSword: number;
   steelSword: number;
   rifle: number;
+  bolas: number;
+  medicine: number;
 }
 
 export interface Buildings {
@@ -216,7 +218,9 @@ export const INITIAL_GAME_DATA: GameData = {
     boneSpear: 0,
     ironSword: 0,
     steelSword: 0,
-    rifle: 0
+    rifle: 0,
+    bolas: 0,
+    medicine: 0
   },
 
   buildings: {
