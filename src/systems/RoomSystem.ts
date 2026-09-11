@@ -56,6 +56,16 @@ export class RoomSystem {
     return true;
   }
 
+  public getWarmthMessage(warmthLevel: WarmthLevel): string {
+    const warmthMap: Record<WarmthLevel, string> = {
+      freezing: '房間寒冷刺骨。',
+      cold: '房間很冷。',
+      mild: '房間很宜人。',
+      warm: '房間很暖和。'
+    };
+    return warmthMap[warmthLevel] || '房間很冷。';
+  }
+
   private getFireMessage(fireState: FireState): string {
     const fireMap: Record<FireState, string> = {
       dead: '火堆熄滅了。',
@@ -73,6 +83,7 @@ export class RoomSystem {
       state.fireFuel = Math.min(100, state.fireFuel + 30);
       this.updateFireState(state);
       EventBus.getInstance().emit(Events.LOG_MESSAGE, this.getFireMessage(state.fireState), 'info');
+      EventBus.getInstance().emit(Events.LOG_MESSAGE, this.getWarmthMessage(state.warmthLevel), 'info');
       EventBus.getInstance().emit(Events.STATE_CHANGED);
       return true;
     }
@@ -92,6 +103,7 @@ export class RoomSystem {
     this.updateFireState(state);
 
     EventBus.getInstance().emit(Events.LOG_MESSAGE, this.getFireMessage(state.fireState), 'info');
+    EventBus.getInstance().emit(Events.LOG_MESSAGE, this.getWarmthMessage(state.warmthLevel), 'info');
     EventBus.getInstance().emit(Events.RESOURCE_CHANGED);
     EventBus.getInstance().emit(Events.STATE_CHANGED);
     return true;

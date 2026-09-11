@@ -26,6 +26,7 @@ export class TickEngine {
 
   public setSpeedMultiplier(multiplier: number): void {
     this.speedMultiplier = Math.max(0.1, multiplier);
+    EventBus.getInstance().emit(Events.SPEED_CHANGED, this.speedMultiplier);
   }
 
   public start(getState: () => GameData, intervalMs: number = 500): void {

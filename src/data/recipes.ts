@@ -45,7 +45,7 @@ export const BUILDING_RECIPES: BuildingRecipe[] = [
     name: '小屋 (Hut)',
     description: '為無家可歸的流浪者提供遮風避雨之所。每座小屋可容納 4 名村民。',
     cost: (current) => ({
-      wood: 100 + Math.floor(Math.pow(current, 1.4) * 50)
+      wood: 100 + current * 50
     }),
     maxCount: 20
   },

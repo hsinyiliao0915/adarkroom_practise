@@ -54,17 +54,8 @@ export class MainScene extends Phaser.Scene {
   private inlineTabs: TabItem[] = [];
   private activeUnderline!: Phaser.GameObjects.Rectangle;
   private titleText!: Phaser.GameObjects.Text;
-  private themeToggleLink!: Phaser.GameObjects.Text;
-  private autoModeLink!: Phaser.GameObjects.Text;
-  private speedLink!: Phaser.GameObjects.Text;
-  private saveLink!: Phaser.GameObjects.Text;
-  private newGameLink!: Phaser.GameObjects.Text;
-  private utilitySep1!: Phaser.GameObjects.Text;
-  private utilitySep2!: Phaser.GameObjects.Text;
-  private utilitySep3!: Phaser.GameObjects.Text;
-  private utilitySep4!: Phaser.GameObjects.Text;
   private unsubTheme?: () => void;
-  private unsubAutoMode?: () => void;
+  private unsubExternalEvents?: Array<() => void>;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -78,9 +69,8 @@ export class MainScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(theme.gameBgCss);
     ThemeManager.getInstance().applyDomTheme();
 
-    // 2. Setup Top Title & Inline Tabs & Utilities
+    // 2. Setup Top Title & Inline Tabs
     this.createHeaderAndTabs();
-    this.createUtilityLinks();
 
     // 3. Create Panels
     // Left: Event Log Panel
@@ -146,16 +136,49 @@ export class MainScene extends Phaser.Scene {
       this.applyTheme();
     });
 
-    this.unsubAutoMode = EventBus.getInstance().on(Events.AUTO_MODE_CHANGED, (enabled: boolean) => {
-      if (this.autoModeLink) {
-        this.autoModeLink.setText(enabled ? '[ 自動: 開 ]' : '[ 自動: 關 ]');
-        this.layoutUtilityLinks();
+    const eb = EventBus.getInstance();
+    const unsubSave = eb.on(Events.OPEN_SAVE_MODAL, () => {
+      this.saveLoadModal.show(this);
+    });
+
+    const unsubSpeed = eb.on(Events.OPEN_SPEED_MODAL, () => {
+      this.speedModal.show(() => {
+        const current = TickEngine.getInstance().getSpeedMultiplier();
+        const next = current > 1 ? 1 : 2;
+        TickEngine.getInstance().setSpeedMultiplier(next);
+        EventBus.getInstance().emit(
+          Events.LOG_MESSAGE,
+          next > 1 ? '加速模式已開啟（2倍速）。' : '加速模式已關閉（正常速度）。',
+          'info'
+        );
+      });
+    });
+
+    const unsubNewGame = eb.on(Events.TRIGGER_NEW_GAME, () => {
+      if (window.confirm('確定要開啟新遊戲嗎？現有歷史存檔將完整保留，系統將為你建立全新開局。')) {
+        const newGame = SaveManager.getInstance().startNewGame();
+        this.gameState = newGame.state;
+        RoomSystem.getInstance().resetTimers();
+        StoryEventSystem.getInstance().reset();
+        this.resourcePanel.resetDiscovered(this.gameState);
+        this.switchTab('room');
+        this.logPanel.initFromState(this.gameState);
+        this.refreshUI();
+        EventBus.getInstance().emit(
+          Events.LOG_MESSAGE,
+          `已開啟全新冒險【${newGame.metadata.name}】！房間寒冷刺骨，火堆熄滅了。`,
+          'story'
+        );
       }
     });
 
+    this.unsubExternalEvents = [unsubSave, unsubSpeed, unsubNewGame];
+
     this.events.on('destroy', () => {
       if (this.unsubTheme) this.unsubTheme();
-      if (this.unsubAutoMode) this.unsubAutoMode();
+      if (this.unsubExternalEvents) {
+        this.unsubExternalEvents.forEach((u) => u());
+      }
       if (this.eventModal) this.eventModal.destroy();
       if (this.speedModal) this.speedModal.destroy();
     });
@@ -170,11 +193,13 @@ export class MainScene extends Phaser.Scene {
     });
 
     if (typeof window !== 'undefined') {
+      let lastWasPortrait = window.innerWidth < window.innerHeight || window.innerWidth <= 768;
       const onWinResize = () => {
         const portrait = window.innerWidth < window.innerHeight || window.innerWidth <= 768;
         const targetW = portrait ? GAME_PORTRAIT_WIDTH : GAME_LANDSCAPE_WIDTH;
         const targetH = portrait ? GAME_PORTRAIT_HEIGHT : GAME_LANDSCAPE_HEIGHT;
-        if (this.scale.width !== targetW || this.scale.height !== targetH) {
+        if (portrait !== lastWasPortrait || this.scale.width !== targetW || this.scale.height !== targetH) {
+          lastWasPortrait = portrait;
           this.scale.resize(targetW, targetH);
         } else {
           this.handleResize(this.scale.width, this.scale.height);
@@ -244,90 +269,6 @@ export class MainScene extends Phaser.Scene {
     this.updateTabsLayout();
   }
 
-  private createUtilityLinks(): void {
-    const theme = ThemeManager.getInstance().getTheme();
-
-    // 1. Theme Toggle Link ([ 開燈 ] in dark mode, [ 熄燈 ] in light mode)
-    const toggleText = theme.mode === 'dark' ? '[ 開燈 ]' : '[ 熄燈 ]';
-    this.themeToggleLink = this.add.text(0, 19, toggleText, createTextStyle('12px', theme.navText));
-    this.themeToggleLink.setInteractive({ useHandCursor: true });
-    this.themeToggleLink.on('pointerover', () => this.themeToggleLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
-    this.themeToggleLink.on('pointerout', () => this.themeToggleLink.setColor(ThemeManager.getInstance().getTheme().navText));
-    this.themeToggleLink.on('pointerdown', () => {
-      ThemeManager.getInstance().toggleTheme();
-    });
-
-    this.utilitySep1 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
-
-    // 2. Auto / Dev Mode Link ([ 自動: 關 ] / [ 自動: 開 ])
-    const autoText = DevAutoSystem.getInstance().isEnabled() ? '[ 自動: 開 ]' : '[ 自動: 關 ]';
-    this.autoModeLink = this.add.text(0, 19, autoText, createTextStyle('12px', theme.navText));
-    this.autoModeLink.setInteractive({ useHandCursor: true });
-    this.autoModeLink.on('pointerover', () => this.autoModeLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
-    this.autoModeLink.on('pointerout', () => this.autoModeLink.setColor(ThemeManager.getInstance().getTheme().navText));
-    this.autoModeLink.on('pointerdown', () => {
-      const isNowOn = DevAutoSystem.getInstance().toggle();
-      this.autoModeLink.setText(isNowOn ? '[ 自動: 開 ]' : '[ 自動: 關 ]');
-      this.layoutUtilityLinks();
-    });
-
-    this.utilitySep2 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
-
-    // 3. Speed Mode Link ([ 加速 ] / [ 2倍速 ])
-    const speedMult = TickEngine.getInstance().getSpeedMultiplier();
-    const speedText = speedMult > 1 ? '[ 2倍速 ]' : '[ 加速 ]';
-    this.speedLink = this.add.text(0, 19, speedText, createTextStyle('12px', theme.navText));
-    this.speedLink.setInteractive({ useHandCursor: true });
-    this.speedLink.on('pointerover', () => this.speedLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
-    this.speedLink.on('pointerout', () => this.speedLink.setColor(ThemeManager.getInstance().getTheme().navText));
-    this.speedLink.on('pointerdown', () => {
-      this.speedModal.show(() => {
-        const current = TickEngine.getInstance().getSpeedMultiplier();
-        const next = current > 1 ? 1 : 2;
-        TickEngine.getInstance().setSpeedMultiplier(next);
-        this.speedLink.setText(next > 1 ? '[ 2倍速 ]' : '[ 加速 ]');
-        this.layoutUtilityLinks();
-        EventBus.getInstance().emit(
-          Events.LOG_MESSAGE,
-          next > 1 ? '加速模式已開啟（2倍速）。' : '加速模式已關閉（正常速度）。',
-          'info'
-        );
-      });
-    });
-
-    this.utilitySep3 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
-
-    // 4. Save Management Link ([ 存檔管理 ])
-    this.saveLink = this.add.text(0, 19, '[ 存檔管理 ]', createTextStyle('12px', theme.navText));
-    this.saveLink.setInteractive({ useHandCursor: true });
-    this.saveLink.on('pointerover', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
-    this.saveLink.on('pointerout', () => this.saveLink.setColor(ThemeManager.getInstance().getTheme().navText));
-    this.saveLink.on('pointerdown', () => this.saveLoadModal.show(this));
-
-    this.utilitySep4 = this.add.text(0, 19, '|', createTextStyle('12px', theme.navSepColor));
-
-    // 5. New Game Link ([ 新遊戲 ])
-    this.newGameLink = this.add.text(0, 19, '[ 新遊戲 ]', createTextStyle('12px', theme.navText));
-    this.newGameLink.setInteractive({ useHandCursor: true });
-    this.newGameLink.on('pointerover', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().navTextHover));
-    this.newGameLink.on('pointerout', () => this.newGameLink.setColor(ThemeManager.getInstance().getTheme().navText));
-    this.newGameLink.on('pointerdown', () => {
-      if (window.confirm('確定要開啟新遊戲嗎？現有歷史存檔將完整保留，系統將為你建立全新開局。')) {
-        const newGame = SaveManager.getInstance().startNewGame();
-        this.gameState = newGame.state;
-        RoomSystem.getInstance().resetTimers();
-        StoryEventSystem.getInstance().reset();
-        this.resourcePanel.resetDiscovered(this.gameState);
-        this.switchTab('room');
-        this.logPanel.initFromState(this.gameState);
-        this.refreshUI();
-        EventBus.getInstance().emit(Events.LOG_MESSAGE, `已開啟全新冒險【${newGame.metadata.name}】！房間寒冷刺骨，火堆熄滅了。`, 'story');
-      }
-    });
-
-    this.layoutUtilityLinks();
-  }
-
   public isPortrait(): boolean {
     return (
       this.scale.width === GAME_PORTRAIT_WIDTH ||
@@ -338,13 +279,11 @@ export class MainScene extends Phaser.Scene {
   public handleResize(width: number, height: number): void {
     const portrait = width === GAME_PORTRAIT_WIDTH || width < height;
 
-    // 1. Header & Utilities
+    // 1. Header Title
     if (portrait) {
       this.titleText.setPosition(15, 14);
-      this.layoutUtilityLinks(true);
     } else {
       this.titleText.setPosition(20, 18);
-      this.layoutUtilityLinks(false);
     }
 
     // 2. Tabs
@@ -398,66 +337,10 @@ export class MainScene extends Phaser.Scene {
     this.refreshUI();
   }
 
-  private layoutUtilityLinks(portraitMode?: boolean): void {
-    const isPortrait = portraitMode !== undefined ? portraitMode : this.isPortrait();
-    const rightEdge = isPortrait ? 465 : 1032;
-    const yPos = isPortrait ? 14 : 19;
-    const gap = isPortrait ? 5 : 8;
-
-    const theme = ThemeManager.getInstance().getTheme();
-    const isAutoOn = DevAutoSystem.getInstance().isEnabled();
-    const speedMult = TickEngine.getInstance().getSpeedMultiplier();
-
-    if (isPortrait) {
-      this.newGameLink.setText('[ 新 ]');
-      this.saveLink.setText('[ 存檔 ]');
-      this.speedLink.setText(speedMult > 1 ? '[ 2x ]' : '[ 1x ]');
-      this.autoModeLink.setText(isAutoOn ? '[ 自:開 ]' : '[ 自:關 ]');
-      this.themeToggleLink.setText(theme.mode === 'dark' ? '[ 燈 ]' : '[ 闇 ]');
-    } else {
-      this.newGameLink.setText('[ 新遊戲 ]');
-      this.saveLink.setText('[ 存檔管理 ]');
-      this.speedLink.setText(speedMult > 1 ? '[ 2倍速 ]' : '[ 加速 ]');
-      this.autoModeLink.setText(isAutoOn ? '[ 自動: 開 ]' : '[ 自動: 關 ]');
-      this.themeToggleLink.setText(theme.mode === 'dark' ? '[ 開燈 ]' : '[ 熄燈 ]');
-    }
-
-    this.newGameLink.setPosition(rightEdge - this.newGameLink.width, yPos);
-    this.utilitySep4.setPosition(this.newGameLink.x - gap - this.utilitySep4.width, yPos);
-
-    this.saveLink.setPosition(this.utilitySep4.x - gap - this.saveLink.width, yPos);
-    this.utilitySep3.setPosition(this.saveLink.x - gap - this.utilitySep3.width, yPos);
-
-    this.speedLink.setPosition(this.utilitySep3.x - gap - this.speedLink.width, yPos);
-    this.utilitySep2.setPosition(this.speedLink.x - gap - this.utilitySep2.width, yPos);
-
-    this.autoModeLink.setPosition(this.utilitySep2.x - gap - this.autoModeLink.width, yPos);
-    this.utilitySep1.setPosition(this.autoModeLink.x - gap - this.utilitySep1.width, yPos);
-
-    this.themeToggleLink.setPosition(this.utilitySep1.x - gap - this.themeToggleLink.width, yPos);
-  }
-
   private applyTheme(): void {
     const theme = ThemeManager.getInstance().getTheme();
     this.cameras.main.setBackgroundColor(theme.gameBgCss);
     this.titleText.setColor(theme.textPrimary);
-
-    this.themeToggleLink.setText(theme.mode === 'dark' ? '[ 開燈 ]' : '[ 熄燈 ]');
-    this.themeToggleLink.setColor(theme.navText);
-    this.utilitySep1.setColor(theme.navSepColor);
-
-    this.autoModeLink.setColor(theme.navText);
-    this.utilitySep2.setColor(theme.navSepColor);
-
-    this.speedLink.setColor(theme.navText);
-    this.utilitySep3.setColor(theme.navSepColor);
-
-    this.saveLink.setColor(theme.navText);
-    this.utilitySep4.setColor(theme.navSepColor);
-
-    this.newGameLink.setColor(theme.navText);
-
-    this.layoutUtilityLinks();
 
     this.inlineTabs.forEach((t) => {
       if (t.sepObj) t.sepObj.setColor(theme.tabSepColor);

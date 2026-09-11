@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { gameConfig } from './config/gameConfig';
+import { ExternalToolbar } from './ui/ExternalToolbar';
 
 function initGame(): void {
+  ExternalToolbar.init();
   new Phaser.Game(gameConfig);
 }
 

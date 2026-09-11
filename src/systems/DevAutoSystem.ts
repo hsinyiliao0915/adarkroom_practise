@@ -11,6 +11,7 @@ export class DevAutoSystem {
   private stokeCooldownMs: number = 0;
   private gatherCooldownMs: number = 0;
   private checkTrapsCooldownMs: number = 0;
+  private eventDelayMs: number = 0;
 
   public static readonly STOKE_INTERVAL_MS = 10000;
   public static readonly GATHER_INTERVAL_MS = 60000;
@@ -115,17 +116,23 @@ export class DevAutoSystem {
       EventBus.getInstance().emit(Events.ACTION_CHECK_TRAPS);
     }
 
-    // 4. Auto handle active story event modal
+    // 4. Auto handle active story event modal with a smooth delay (prevents 1-frame screen flash)
     const activeEv = StoryEventSystem.getInstance().getActiveEvent();
     if (activeEv) {
-      const keys = Object.keys(activeEv.scene.buttons);
-      for (const k of keys) {
-        const choice = activeEv.scene.buttons[k];
-        if (StoryEventSystem.getInstance().canAffordChoice(choice, state)) {
-          StoryEventSystem.getInstance().selectChoice(k, state);
-          break;
+      this.eventDelayMs = (this.eventDelayMs || 0) + delta;
+      if (this.eventDelayMs >= 1500) {
+        this.eventDelayMs = 0;
+        const keys = Object.keys(activeEv.scene.buttons);
+        for (const k of keys) {
+          const choice = activeEv.scene.buttons[k];
+          if (StoryEventSystem.getInstance().canAffordChoice(choice, state)) {
+            StoryEventSystem.getInstance().selectChoice(k, state);
+            break;
+          }
         }
       }
+    } else {
+      this.eventDelayMs = 0;
     }
   }
 
