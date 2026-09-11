@@ -1,6 +1,7 @@
 import { GameData, Resources, Workers } from '../core/GameState';
 import { WORKER_JOBS } from '../data/recipes';
 import { EventBus, Events } from '../core/EventBus';
+import { VillageSystem } from './VillageSystem';
 
 export class ResourceSystem {
   private static instance: ResourceSystem;
@@ -122,8 +123,16 @@ export class ResourceSystem {
   public getNetRates(state: GameData): Partial<Record<keyof Resources, number>> {
     const netRates: Partial<Record<keyof Resources, number>> = {};
 
+    // 1. Builder passive income (when helping/awake)
+    if (state.strangerState === 'awake' || state.strangerState === 'helping') {
+      netRates.wood = (netRates.wood || 0) + 0.2;
+    }
+
+    // 2. Workers income
     WORKER_JOBS.forEach((job) => {
-      const count = state.workers[job.id as keyof Workers] || 0;
+      const count = job.id === 'gatherers'
+        ? VillageSystem.getInstance().getNumGatherers(state)
+        : (state.workers[job.id as keyof Workers] || 0);
       if (count <= 0) return;
 
       // Check if consumption is met
@@ -154,8 +163,16 @@ export class ResourceSystem {
   }
 
   public tick(state: GameData, deltaSeconds: number): void {
+    // 1. Builder passive wood production (when stranger is helping)
+    if (state.strangerState === 'awake' || state.strangerState === 'helping') {
+      state.resources.wood = (state.resources.wood || 0) + (2 * deltaSeconds) / 10;
+    }
+
+    // 2. Workers jobs production and consumption
     WORKER_JOBS.forEach((job) => {
-      const count = state.workers[job.id as keyof Workers] || 0;
+      const count = job.id === 'gatherers'
+        ? VillageSystem.getInstance().getNumGatherers(state)
+        : (state.workers[job.id as keyof Workers] || 0);
       if (count <= 0) return;
 
       // Check if enough resources for consumption

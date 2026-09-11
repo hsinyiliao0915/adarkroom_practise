@@ -24,11 +24,16 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
 
   private slotContainers: Phaser.GameObjects.Container[] = [];
   private unsubTheme?: () => void;
+  private modalWidth: number;
 
   constructor(scene: Phaser.Scene, width: number = 620, height: number = 540) {
     const cameraWidth = scene.cameras.main.width;
     const cameraHeight = scene.cameras.main.height;
+    const modalW = Math.min(width, cameraWidth - 20);
+    const modalH = Math.min(height, cameraHeight - 30);
     super(scene, cameraWidth / 2, cameraHeight / 2);
+
+    this.modalWidth = modalW;
 
     const theme = ThemeManager.getInstance().getTheme();
 
@@ -39,15 +44,15 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     if (this.bgBackdrop.input) this.bgBackdrop.input.enabled = false;
 
     // 彈窗背景與邊框
-    this.modalBg = scene.add.rectangle(0, 0, width, height, theme.modalBgHex, 0.98);
-    this.modalBorder = scene.add.rectangle(0, 0, width, height);
+    this.modalBg = scene.add.rectangle(0, 0, modalW, modalH, theme.modalBgHex, 0.98);
+    this.modalBorder = scene.add.rectangle(0, 0, modalW, modalH);
     this.modalBorder.setStrokeStyle(1, theme.modalBorderHex);
     this.modalBorder.setFillStyle(0x000000, 0);
 
     // 標題
     this.titleText = scene.add.text(
       0,
-      -height / 2 + 30,
+      -modalH / 2 + 28,
       '── 冒險存檔與進度管理 ──',
       createTextStyle('15px', theme.textPrimary, false, { align: 'center' })
     );
@@ -56,52 +61,87 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
     // 當前槽位
     this.currentSaveText = scene.add.text(
       0,
-      -height / 2 + 60,
+      -modalH / 2 + 56,
       '目前使用中的存檔：載入中...',
       createTextStyle('12px', '#94a3b8', false, { align: 'center' })
     );
     this.currentSaveText.setOrigin(0.5);
 
     // 操作功能按鈕區
-    const topBtnY = -height / 2 + 100;
+    const topBtnY = -modalH / 2 + 95;
+    const isSmall = modalW <= 480;
 
-    this.quickSaveBtn = new TextButton(scene, -180, topBtnY, {
-      text: '覆蓋儲存',
-      width: 110,
-      height: 32,
-      fontSize: '12px',
-      onClick: () => this.handleQuickSave(scene)
-    });
+    if (isSmall) {
+      this.quickSaveBtn = new TextButton(scene, -145, topBtnY, {
+        text: '覆蓋儲存',
+        width: 80,
+        height: 30,
+        fontSize: '11px',
+        onClick: () => this.handleQuickSave(scene)
+      });
 
-    this.createNewSaveBtn = new TextButton(scene, -45, topBtnY, {
-      text: '建立新存檔',
-      width: 120,
-      height: 32,
-      fontSize: '12px',
-      onClick: () => this.handleCreateNamedSave(scene)
-    });
+      this.createNewSaveBtn = new TextButton(scene, -55, topBtnY, {
+        text: '建立存檔',
+        width: 80,
+        height: 30,
+        fontSize: '11px',
+        onClick: () => this.handleCreateNamedSave(scene)
+      });
 
-    this.newGameBtn = new TextButton(scene, 100, topBtnY, {
-      text: '開啟新遊戲',
-      width: 120,
-      height: 32,
-      fontSize: '12px',
-      onClick: () => this.handleNewGame(scene)
-    });
+      this.newGameBtn = new TextButton(scene, 40, topBtnY, {
+        text: '新遊戲',
+        width: 75,
+        height: 30,
+        fontSize: '11px',
+        onClick: () => this.handleNewGame(scene)
+      });
 
-    this.closeBtn = new TextButton(scene, 220, topBtnY, {
-      text: '關閉',
-      width: 80,
-      height: 32,
-      fontSize: '12px',
-      onClick: () => this.hide()
-    });
+      this.closeBtn = new TextButton(scene, 125, topBtnY, {
+        text: '關閉',
+        width: 65,
+        height: 30,
+        fontSize: '11px',
+        onClick: () => this.hide()
+      });
+    } else {
+      this.quickSaveBtn = new TextButton(scene, -180, topBtnY, {
+        text: '覆蓋儲存',
+        width: 110,
+        height: 32,
+        fontSize: '12px',
+        onClick: () => this.handleQuickSave(scene)
+      });
 
-    this.divider = scene.add.rectangle(0, -height / 2 + 135, width - 40, 1, theme.modalDividerHex);
+      this.createNewSaveBtn = new TextButton(scene, -45, topBtnY, {
+        text: '建立新存檔',
+        width: 120,
+        height: 32,
+        fontSize: '12px',
+        onClick: () => this.handleCreateNamedSave(scene)
+      });
+
+      this.newGameBtn = new TextButton(scene, 100, topBtnY, {
+        text: '開啟新遊戲',
+        width: 120,
+        height: 32,
+        fontSize: '12px',
+        onClick: () => this.handleNewGame(scene)
+      });
+
+      this.closeBtn = new TextButton(scene, 220, topBtnY, {
+        text: '關閉',
+        width: 80,
+        height: 32,
+        fontSize: '12px',
+        onClick: () => this.hide()
+      });
+    }
+
+    this.divider = scene.add.rectangle(0, -modalH / 2 + 130, modalW - 30, 1, theme.modalDividerHex);
 
     this.listLabel = scene.add.text(
-      -width / 2 + 30,
-      -height / 2 + 148,
+      -modalW / 2 + 20,
+      -modalH / 2 + 142,
       '【 本機歷史存檔列表 】（最多保留 10 份）',
       createTextStyle('12px', theme.textPrimary, true)
     );
@@ -178,13 +218,14 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
       const rowContainer = scene.add.container(0, rowY);
 
       const isCurrent = meta.id === activeId;
-      const rowBg = scene.add.rectangle(0, 0, 560, 54, theme.modalSlotBgHex, isCurrent ? 0.95 : 0.6);
-      const rowBorder = scene.add.rectangle(0, 0, 560, 54);
+      const slotW = this.modalWidth - 36;
+      const rowBg = scene.add.rectangle(0, 0, slotW, 54, theme.modalSlotBgHex, isCurrent ? 0.95 : 0.6);
+      const rowBorder = scene.add.rectangle(0, 0, slotW, 54);
       rowBorder.setStrokeStyle(1, isCurrent ? theme.underlineHex : theme.modalBorderHex);
       rowBorder.setFillStyle(0, 0);
 
       const nameText = scene.add.text(
-        -265,
+        -slotW / 2 + 14,
         -18,
         `${isCurrent ? '▶ ' : ''}${meta.name}`,
         createTextStyle('13px', theme.textPrimary, true)
@@ -193,25 +234,25 @@ export class SaveLoadModal extends Phaser.GameObjects.Container {
       const d = new Date(meta.updatedAt);
       const timeStr = `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
       const descText = scene.add.text(
-        -265,
+        -slotW / 2 + 14,
         4,
         `${meta.summary || ''}  |  更新時間: ${timeStr}`,
         createTextStyle('11px', theme.textSecondary)
       );
 
       // 載入按鈕
-      const loadBtn = new TextButton(scene, 185, 0, {
+      const loadBtn = new TextButton(scene, slotW / 2 - 76, 0, {
         text: '載入',
-        width: 60,
+        width: 50,
         height: 28,
         fontSize: '11px',
         onClick: () => this.handleLoadSlot(scene, meta)
       });
 
       // 刪除按鈕
-      const deleteBtn = new TextButton(scene, 245, 0, {
+      const deleteBtn = new TextButton(scene, slotW / 2 - 24, 0, {
         text: '刪除',
-        width: 50,
+        width: 42,
         height: 28,
         fontSize: '11px',
         onClick: () => this.handleDeleteSlot(scene, meta)

@@ -66,7 +66,7 @@ export class OutsideView extends Phaser.GameObjects.Container {
       { id: 'hunters', label: '獵人', hasControls: true },
       { id: 'trappers', label: '陷阱師', hasControls: true },
       { id: 'tanners', label: '製革工', hasControls: true },
-      { id: 'curedMeatMakers', label: '燻肉工', hasControls: true },
+      { id: 'curedMeatMakers', label: '燻肉師', hasControls: true },
       { id: 'ironMiners', label: '鐵礦工', hasControls: true },
       { id: 'coalMiners', label: '煤礦工', hasControls: true },
       { id: 'steelworkers', label: '煉鋼工', hasControls: true }

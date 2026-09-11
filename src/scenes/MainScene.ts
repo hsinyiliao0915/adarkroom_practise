@@ -20,6 +20,12 @@ import { DevAutoSystem } from '../systems/DevAutoSystem';
 import { StoryEventSystem } from '../systems/StoryEventSystem';
 import { createTextStyle } from '../config/typography';
 import { ThemeManager } from '../config/ThemeManager';
+import {
+  GAME_LANDSCAPE_WIDTH,
+  GAME_LANDSCAPE_HEIGHT,
+  GAME_PORTRAIT_WIDTH,
+  GAME_PORTRAIT_HEIGHT
+} from '../config/gameConfig';
 
 interface TabItem {
   key: ActiveTab;
@@ -158,8 +164,30 @@ export class MainScene extends Phaser.Scene {
     TickEngine.getInstance().start(() => this.gameState, 500);
     SaveManager.getInstance().startAutoSave(() => this.gameState, 10000);
 
-    // Initial render
-    this.refreshUI();
+    // 8. Dynamic Orientation & Window Resize Listener
+    this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
+      this.handleResize(gameSize.width, gameSize.height);
+    });
+
+    if (typeof window !== 'undefined') {
+      const onWinResize = () => {
+        const portrait = window.innerWidth < window.innerHeight || window.innerWidth <= 768;
+        const targetW = portrait ? GAME_PORTRAIT_WIDTH : GAME_LANDSCAPE_WIDTH;
+        const targetH = portrait ? GAME_PORTRAIT_HEIGHT : GAME_LANDSCAPE_HEIGHT;
+        if (this.scale.width !== targetW || this.scale.height !== targetH) {
+          this.scale.resize(targetW, targetH);
+        } else {
+          this.handleResize(this.scale.width, this.scale.height);
+        }
+      };
+      window.addEventListener('resize', onWinResize);
+      this.events.on('destroy', () => {
+        window.removeEventListener('resize', onWinResize);
+      });
+    }
+
+    // Initial layout and render
+    this.handleResize(this.scale.width, this.scale.height);
   }
 
   private createHeaderAndTabs(): void {
@@ -300,23 +328,113 @@ export class MainScene extends Phaser.Scene {
     this.layoutUtilityLinks();
   }
 
-  private layoutUtilityLinks(): void {
-    const rightEdge = 1032;
-    const gap = 8;
+  public isPortrait(): boolean {
+    return (
+      this.scale.width === GAME_PORTRAIT_WIDTH ||
+      (typeof window !== 'undefined' && (window.innerWidth < window.innerHeight || window.innerWidth <= 768))
+    );
+  }
 
-    this.newGameLink.setPosition(rightEdge - this.newGameLink.width, 19);
-    this.utilitySep4.setPosition(this.newGameLink.x - gap - this.utilitySep4.width, 19);
+  public handleResize(width: number, height: number): void {
+    const portrait = width === GAME_PORTRAIT_WIDTH || width < height;
 
-    this.saveLink.setPosition(this.utilitySep4.x - gap - this.saveLink.width, 19);
-    this.utilitySep3.setPosition(this.saveLink.x - gap - this.utilitySep3.width, 19);
+    // 1. Header & Utilities
+    if (portrait) {
+      this.titleText.setPosition(15, 14);
+      this.layoutUtilityLinks(true);
+    } else {
+      this.titleText.setPosition(20, 18);
+      this.layoutUtilityLinks(false);
+    }
 
-    this.speedLink.setPosition(this.utilitySep3.x - gap - this.speedLink.width, 19);
-    this.utilitySep2.setPosition(this.speedLink.x - gap - this.utilitySep2.width, 19);
+    // 2. Tabs
+    this.updateTabsLayout();
 
-    this.autoModeLink.setPosition(this.utilitySep2.x - gap - this.autoModeLink.width, 19);
-    this.utilitySep1.setPosition(this.autoModeLink.x - gap - this.utilitySep1.width, 19);
+    // 3. Center Views
+    const viewX = portrait ? 15 : 338;
+    const viewY = portrait ? 72 : 55;
+    const views = [
+      this.roomView,
+      this.outsideView,
+      this.villageView,
+      this.craftView,
+      this.mapView,
+      this.shipView,
+      this.spaceFlightView
+    ];
+    views.forEach((v) => {
+      if (v) v.setPosition(viewX, viewY);
+    });
 
-    this.themeToggleLink.setPosition(this.utilitySep1.x - gap - this.themeToggleLink.width, 19);
+    // 4. Resource Panel
+    if (this.resourcePanel) {
+      if (portrait) {
+        this.resourcePanel.setPosition(15, 365);
+        this.resourcePanel.resize(450);
+      } else {
+        this.resourcePanel.setPosition(810, 55);
+        this.resourcePanel.resize(220);
+      }
+    }
+
+    // 5. Log Panel
+    if (this.logPanel) {
+      if (portrait) {
+        this.logPanel.setPosition(15, 575);
+        this.logPanel.resize(450, 265);
+      } else {
+        this.logPanel.setPosition(18, 55);
+        this.logPanel.resize(300, 645);
+      }
+    }
+
+    // 6. Modals
+    const cx = width / 2;
+    const cy = height / 2;
+    if (this.saveLoadModal) this.saveLoadModal.setPosition(cx, cy);
+    if (this.eventModal) this.eventModal.setPosition(cx, cy);
+    if (this.speedModal) this.speedModal.setPosition(cx, cy);
+
+    this.refreshUI();
+  }
+
+  private layoutUtilityLinks(portraitMode?: boolean): void {
+    const isPortrait = portraitMode !== undefined ? portraitMode : this.isPortrait();
+    const rightEdge = isPortrait ? 465 : 1032;
+    const yPos = isPortrait ? 14 : 19;
+    const gap = isPortrait ? 5 : 8;
+
+    const theme = ThemeManager.getInstance().getTheme();
+    const isAutoOn = DevAutoSystem.getInstance().isEnabled();
+    const speedMult = TickEngine.getInstance().getSpeedMultiplier();
+
+    if (isPortrait) {
+      this.newGameLink.setText('[ 新 ]');
+      this.saveLink.setText('[ 存檔 ]');
+      this.speedLink.setText(speedMult > 1 ? '[ 2x ]' : '[ 1x ]');
+      this.autoModeLink.setText(isAutoOn ? '[ 自:開 ]' : '[ 自:關 ]');
+      this.themeToggleLink.setText(theme.mode === 'dark' ? '[ 燈 ]' : '[ 闇 ]');
+    } else {
+      this.newGameLink.setText('[ 新遊戲 ]');
+      this.saveLink.setText('[ 存檔管理 ]');
+      this.speedLink.setText(speedMult > 1 ? '[ 2倍速 ]' : '[ 加速 ]');
+      this.autoModeLink.setText(isAutoOn ? '[ 自動: 開 ]' : '[ 自動: 關 ]');
+      this.themeToggleLink.setText(theme.mode === 'dark' ? '[ 開燈 ]' : '[ 熄燈 ]');
+    }
+
+    this.newGameLink.setPosition(rightEdge - this.newGameLink.width, yPos);
+    this.utilitySep4.setPosition(this.newGameLink.x - gap - this.utilitySep4.width, yPos);
+
+    this.saveLink.setPosition(this.utilitySep4.x - gap - this.saveLink.width, yPos);
+    this.utilitySep3.setPosition(this.saveLink.x - gap - this.utilitySep3.width, yPos);
+
+    this.speedLink.setPosition(this.utilitySep3.x - gap - this.speedLink.width, yPos);
+    this.utilitySep2.setPosition(this.speedLink.x - gap - this.utilitySep2.width, yPos);
+
+    this.autoModeLink.setPosition(this.utilitySep2.x - gap - this.autoModeLink.width, yPos);
+    this.utilitySep1.setPosition(this.autoModeLink.x - gap - this.utilitySep1.width, yPos);
+
+    this.themeToggleLink.setPosition(this.utilitySep1.x - gap - this.themeToggleLink.width, yPos);
   }
 
   private applyTheme(): void {
@@ -360,7 +478,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateTabsLayout(): void {
-    let currentX = 320;
+    const isPortrait = this.isPortrait();
+    let currentX = isPortrait ? 15 : 320;
+    const tabY = isPortrait ? 42 : 18;
     let visibleTabs: TabItem[] = [];
 
     this.inlineTabs.forEach((tab) => {
@@ -381,12 +501,12 @@ export class MainScene extends Phaser.Scene {
     });
 
     visibleTabs.forEach((tab, index) => {
-      tab.textObj.setX(currentX);
+      tab.textObj.setPosition(currentX, tabY);
       currentX += tab.textObj.width + 10;
 
       if (index < visibleTabs.length - 1 && tab.sepObj) {
         tab.sepObj.setVisible(true);
-        tab.sepObj.setX(currentX);
+        tab.sepObj.setPosition(currentX, tabY);
         currentX += tab.sepObj.width + 10;
       } else if (tab.sepObj) {
         tab.sepObj.setVisible(false);

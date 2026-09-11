@@ -256,7 +256,8 @@ export class RoomView extends Phaser.GameObjects.Container {
     // Fire button logic
     if (state.fireState === 'dead') {
       this.lightFireBtn.setVisible(true);
-      this.lightFireBtn.setEnabled(true);
+      this.lightFireBtn.setTooltipProvider(() => state.unlockedForest ? [{ name: '木頭', amount: 5 }] : null);
+      this.lightFireBtn.setEnabled(!state.unlockedForest || state.resources.wood >= 5);
       this.stokeFireBtn.setVisible(false);
     } else {
       this.lightFireBtn.setVisible(false);
@@ -265,8 +266,14 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.stokeFireBtn.setEnabled(!state.unlockedForest || state.resources.wood >= 1);
     }
 
-    // Builder buildings logic
-    const hasBuilder = state.strangerState === 'awake' || state.strangerState === 'helping';
+    // Builder buildings logic: resilience against strangerState fluctuations
+    if (state.unlockedBuilder || (state.buildings.huts || 0) > 0 || state.population > 0) {
+      state.unlockedBuilder = true;
+      if (state.strangerState === 'sleeping' || state.strangerState === 'none') {
+        state.strangerState = 'helping';
+      }
+    }
+    const hasBuilder = Boolean(state.unlockedBuilder) || state.strangerState === 'awake' || state.strangerState === 'helping';
     this.buildingsTitle.setVisible(hasBuilder);
 
     if (hasBuilder) {
@@ -282,6 +289,51 @@ export class RoomView extends Phaser.GameObjects.Container {
           currentY += 38 + 8;
         }
       };
+
+      if (!state.unlockedBuildings) {
+        state.unlockedBuildings = {};
+      }
+
+      // Check unlock triggers (once unlocked, always stays unlocked!)
+      state.unlockedBuildings['traps'] = true;
+
+      if (state.resources.wood >= 15 || (state.resources.cart || 0) > 0) {
+        state.unlockedBuildings['cart'] = true;
+      }
+
+      if (state.resources.wood >= 50 || (state.buildings.huts || 0) > 0) {
+        state.unlockedBuildings['huts'] = true;
+      }
+
+      if (
+        (state.resources.wood >= 100 && (state.resources.fur || 0) > 0 && (state.resources.meat || 0) > 0) ||
+        (state.buildings.lodge || 0) > 0
+      ) {
+        state.unlockedBuildings['lodge'] = true;
+      }
+
+      if (
+        (state.resources.wood >= 200 && (state.resources.fur || 0) > 0) ||
+        (state.buildings.tradingPost || 0) > 0
+      ) {
+        state.unlockedBuildings['tradingPost'] = true;
+      }
+
+      if (
+        (state.resources.wood >= 150 && (state.resources.fur || 0) > 0) ||
+        (state.resources.fur || 0) >= 15 ||
+        (state.buildings.tannery || 0) > 0
+      ) {
+        state.unlockedBuildings['tannery'] = true;
+      }
+
+      if (
+        (state.resources.wood >= 300 && (state.resources.meat || 0) > 0) ||
+        (state.resources.meat || 0) >= 15 ||
+        (state.buildings.smokehouse || 0) > 0
+      ) {
+        state.unlockedBuildings['smokehouse'] = true;
+      }
 
       // 1. Traps (10 + n*10 wood, max 10)
       const trapCount = state.buildings.traps || 0;
@@ -300,7 +352,7 @@ export class RoomView extends Phaser.GameObjects.Container {
         if (isCartMaxed) return '已建造完成';
         return [{ name: '木頭', amount: 30 }];
       });
-      placeBuildingBtn(this.cartBtn, true, !isCartMaxed);
+      placeBuildingBtn(this.cartBtn, Boolean(state.unlockedBuildings['cart']), !isCartMaxed);
 
       // 3. Huts (100 + n*50 wood, max 20)
       const hutCount = state.buildings.huts || 0;
@@ -310,10 +362,9 @@ export class RoomView extends Phaser.GameObjects.Container {
         if (isHutMaxed) return '已達上限 20';
         return [{ name: '木頭', amount: hutCost }];
       });
-      placeBuildingBtn(this.hutBtn, true, !isHutMaxed);
+      placeBuildingBtn(this.hutBtn, Boolean(state.unlockedBuildings['huts']), !isHutMaxed);
 
-      // 4. Lodge (狩獵小屋, unlocks when huts >= 1)
-      const showLodge = hutCount >= 1;
+      // 4. Lodge (狩獵小屋, unlocks when wood >= 100 && fur > 0 && meat > 0, or lodge built)
       const lodgeCount = state.buildings.lodge || 0;
       const isLodgeMaxed = lodgeCount >= 1;
       this.lodgeBtn.setTooltipProvider(() => {
@@ -324,10 +375,9 @@ export class RoomView extends Phaser.GameObjects.Container {
           { name: '肉', amount: 5 }
         ];
       });
-      placeBuildingBtn(this.lodgeBtn, showLodge, !isLodgeMaxed);
+      placeBuildingBtn(this.lodgeBtn, Boolean(state.unlockedBuildings['lodge']), !isLodgeMaxed);
 
-      // 5. Trading Post (貿易站, unlocks when lodge built)
-      const showTradingPost = lodgeCount > 0 || (state.buildings.tradingPost || 0) > 0;
+      // 5. Trading Post (貿易站, unlocks when lodge built or wood >= 200)
       const tpCount = state.buildings.tradingPost || 0;
       const isTpMaxed = tpCount >= 1;
       this.tradingPostBtn.setTooltipProvider(() => {
@@ -337,10 +387,9 @@ export class RoomView extends Phaser.GameObjects.Container {
           { name: '毛皮', amount: 100 }
         ];
       });
-      placeBuildingBtn(this.tradingPostBtn, showTradingPost, !isTpMaxed);
+      placeBuildingBtn(this.tradingPostBtn, Boolean(state.unlockedBuildings['tradingPost']), !isTpMaxed);
 
       // 6. Tannery (製革屋, unlocks when fur >= 15 or tannery built)
-      const showTannery = (state.resources.fur >= 15) || (state.buildings.tannery || 0) > 0;
       const tanneryCount = state.buildings.tannery || 0;
       const isTanneryMaxed = tanneryCount >= 1;
       this.tanneryBtn.setTooltipProvider(() => {
@@ -350,10 +399,9 @@ export class RoomView extends Phaser.GameObjects.Container {
           { name: '毛皮', amount: 150 }
         ];
       });
-      placeBuildingBtn(this.tanneryBtn, showTannery, !isTanneryMaxed);
+      placeBuildingBtn(this.tanneryBtn, Boolean(state.unlockedBuildings['tannery']), !isTanneryMaxed);
 
       // 7. Smokehouse (燻肉房, unlocks when meat >= 15 or smokehouse built)
-      const showSmokehouse = (state.resources.meat >= 15) || (state.buildings.smokehouse || 0) > 0;
       const smokehouseCount = state.buildings.smokehouse || 0;
       const isSmokehouseMaxed = smokehouseCount >= 1;
       this.smokehouseBtn.setTooltipProvider(() => {
@@ -363,7 +411,7 @@ export class RoomView extends Phaser.GameObjects.Container {
           { name: '肉', amount: 200 }
         ];
       });
-      placeBuildingBtn(this.smokehouseBtn, showSmokehouse, !isSmokehouseMaxed);
+      placeBuildingBtn(this.smokehouseBtn, Boolean(state.unlockedBuildings['smokehouse']), !isSmokehouseMaxed);
     } else {
       this.trapBtn.setVisible(false);
       this.cartBtn.setVisible(false);

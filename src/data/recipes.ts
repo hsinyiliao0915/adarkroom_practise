@@ -59,7 +59,7 @@ export const BUILDING_RECIPES: BuildingRecipe[] = [
       meat: 5
     }),
     maxCount: 1,
-    unlockRequirement: (b) => (b.huts || 0) >= 1
+    unlockRequirement: (_, res) => (res.wood || 0) >= 100 && (res.fur || 0) > 0 && (res.meat || 0) > 0
   },
   {
     id: 'tradingPost',

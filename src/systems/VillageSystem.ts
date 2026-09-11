@@ -85,7 +85,8 @@ export class VillageSystem {
     }
 
     // Check unlock requirement guard
-    if (recipe.unlockRequirement && !recipe.unlockRequirement(state.buildings, state.resources)) {
+    const isAlreadyUnlocked = Boolean(state.unlockedBuildings?.[buildingId]);
+    if (!isAlreadyUnlocked && recipe.unlockRequirement && !recipe.unlockRequirement(state.buildings, state.resources)) {
       EventBus.getInstance().emit(Events.LOG_MESSAGE, '尚未達成該建築的建造前置條件。', 'warn');
       return false;
     }

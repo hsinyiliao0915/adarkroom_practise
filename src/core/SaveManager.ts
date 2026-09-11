@@ -66,6 +66,13 @@ export class SaveManager {
     base.unlockedBuilder = Boolean(raw.unlockedBuilder);
     base.unlockedCompass = Boolean(raw.unlockedCompass);
 
+    if (base.unlockedBuilder || (base.buildings && ((base.buildings.huts || 0) > 0 || (base.buildings.traps || 0) > 0))) {
+      base.unlockedBuilder = true;
+      if (base.strangerState === 'sleeping' || base.strangerState === 'none') {
+        base.strangerState = 'helping';
+      }
+    }
+
     // 2. Resources 清洗
     if (raw.resources && typeof raw.resources === 'object') {
       for (const key of Object.keys(base.resources) as Array<keyof Resources>) {
@@ -99,6 +106,11 @@ export class SaveManager {
       base.unlockedTabs.map = Boolean(raw.unlockedTabs.map);
       base.unlockedTabs.ship = Boolean(raw.unlockedTabs.ship);
     }
+
+    // 5b. 建築解鎖狀態
+    base.unlockedBuildings = raw.unlockedBuildings && typeof raw.unlockedBuildings === 'object'
+      ? { ...raw.unlockedBuildings }
+      : {};
 
     // 6. 地圖探索與遠征狀態
     base.mapSeed = cleanInt(raw.mapSeed, base.mapSeed);

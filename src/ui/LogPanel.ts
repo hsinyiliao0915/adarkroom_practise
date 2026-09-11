@@ -49,6 +49,14 @@ export class LogPanel extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
+  public resize(width: number, height: number): void {
+    this.panelHeight = height;
+    this.textEntries.forEach((entryText) => {
+      entryText.setWordWrapWidth(width - 24, true);
+    });
+    this.renderLogs();
+  }
+
   public initFromState(state: GameData): void {
     if (state && Array.isArray(state.logs)) {
       this.logItems = [...state.logs].reverse().map((l) => ({

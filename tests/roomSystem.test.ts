@@ -154,4 +154,24 @@ describe('RoomSystem & Opening Progression (1:1 ADR)', () => {
     assert.strictEqual(logs.includes('天色陰沉，風無情地刮著。'), false, 'Forest arrival must NOT trigger on unlock');
     assert.strictEqual(logs.includes('林地上散落著枯枝敗葉。'), false, 'Gather wood message must NOT trigger on unlock');
   });
+
+  test('relighting dead fire in late game must NOT reset strangerState or re-trigger stranger arrival', () => {
+    const state = createMockGameState({
+      fireState: 'dead',
+      fireFuel: 0,
+      resources: { wood: 20 },
+      unlockedForest: true,
+      unlockedBuilder: true,
+      strangerState: 'helping'
+    });
+
+    const success = roomSys.lightFire(state);
+    assert.strictEqual(success, true);
+    assert.strictEqual(state.resources.wood, 15, 'Should consume 5 wood to relight');
+    assert.strictEqual(state.strangerState, 'helping', 'Builder must remain helping');
+
+    // Tick past what would have been arrival timer
+    roomSys.tick(state, 20);
+    assert.strictEqual(state.strangerState, 'helping', 'Builder must NEVER be overwritten to sleeping');
+  });
 });

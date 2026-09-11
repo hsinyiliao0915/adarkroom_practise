@@ -220,6 +220,26 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
     }
   }
 
+  public resize(width: number): void {
+    this.panelWidth = width;
+    this.villageOutline.setSize(width - 10, this.villageOutline.height);
+    this.villageTitleRight.setX(width - 24);
+    this.storesOutline.setSize(width - 10, this.storesOutline.height);
+
+    this.buildingItems.forEach((b) => {
+      b.valText.setX(width - 24);
+    });
+
+    this.resourceItems.forEach((item) => {
+      item.valText.setX(width - 24);
+      item.hitArea.setSize(width - 10, 22);
+    });
+
+    if (this.lastState) {
+      this.updateDisplay(this.lastState);
+    }
+  }
+
   public updateDisplay(state: GameData, activeTab?: string): void {
     this.lastState = state;
     const currentTab = activeTab || state.activeTab;
@@ -356,7 +376,7 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
 
     // 1. Check Builder (when helping/awake, produces 2 wood / 10s)
     if (key === 'wood' && (state.strangerState === 'awake' || state.strangerState === 'helping')) {
-      entries.push({ name: '陌生人', rate: 2 });
+      entries.push({ name: '建造者', rate: 2 });
     }
 
     // 2. Check Workers
@@ -378,7 +398,8 @@ export class ResourcePanel extends Phaser.GameObjects.Container {
       }
 
       if (netRatePerWorker !== 0) {
-        const cleanName = job.name.split(' ')[0];
+        let cleanName = job.name.split(' ')[0];
+        if (cleanName === '燻肉工') cleanName = '燻肉師';
         const totalJobRate = netRatePerWorker * count;
         entries.push({ name: cleanName, rate: totalJobRate });
       }

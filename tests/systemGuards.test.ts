@@ -137,15 +137,17 @@ describe('System Guards & Domain Invariants', () => {
       assert.strictEqual(state.workers.ironMiners, 1);
     });
 
-    test('lodge should reject building if huts < 1 and succeed if huts >= 1', () => {
+    test('lodge should reject building if requirements not met and succeed when met', () => {
       const state = createMockGameState({
-        buildings: { huts: 0, lodge: 0 },
-        resources: { wood: 500, fur: 50, meat: 50 }
+        buildings: { lodge: 0 },
+        resources: { wood: 50, fur: 0, meat: 0 }
       });
 
       assert.strictEqual(villageSys.build(state, 'lodge'), false);
 
-      state.buildings.huts = 1;
+      state.resources.wood = 500;
+      state.resources.fur = 50;
+      state.resources.meat = 50;
       assert.strictEqual(villageSys.build(state, 'lodge'), true);
       assert.strictEqual(state.buildings.lodge, 1);
       assert.strictEqual(state.resources.wood, 300);

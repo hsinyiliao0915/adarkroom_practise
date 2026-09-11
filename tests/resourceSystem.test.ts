@@ -66,4 +66,19 @@ describe('ResourceSystem & Early Game Economy', () => {
     const totalCaught = (state.resources.fur || 0) + (state.resources.meat || 0) + (state.resources.scales || 0) + (state.resources.teeth || 0) + (state.resources.cloth || 0);
     assert.ok(totalCaught > 0);
   });
+
+  test('passive wood production should credit builder and unassigned gatherers', () => {
+    const state = createMockGameState({
+      resources: { wood: 0 },
+      strangerState: 'helping',
+      population: 4,
+      workers: { hunters: 0, trappers: 0, tanners: 0, curedMeatMakers: 0, ironMiners: 0, coalMiners: 0, steelworkers: 0 }
+    });
+
+    // Builder gives 2 wood / 10s = 0.2/s
+    // 4 gatherers give 4 wood / 10s = 0.4/s
+    // Total = 0.6 wood/s => over 10s = 6 wood
+    resourceSys.tick(state, 10);
+    assert.strictEqual(Math.round(state.resources.wood), 6);
+  });
 });
