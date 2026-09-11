@@ -23,7 +23,7 @@ export class CraftView extends Phaser.GameObjects.Container {
       20,
       15,
       '── 工作坊：裝備與物資製造 ──',
-      createTextStyle('14px', '#f59e0b')
+      createTextStyle('14px', '#e2e8f0')
     );
     this.add(titleText);
 
@@ -107,8 +107,8 @@ export class CraftView extends Phaser.GameObjects.Container {
         row.craftBtn.setEnabled(false);
       } else {
         row.costText.setText(costParts.join(', '));
-        row.costText.setColor(canAfford ? '#94a3b8' : '#e11d48');
-        row.craftBtn.setEnabled(true);
+        row.costText.setColor(canAfford ? '#94a3b8' : '#64748b');
+        row.craftBtn.setEnabled(canAfford);
       }
     });
   }

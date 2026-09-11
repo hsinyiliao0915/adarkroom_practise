@@ -26,6 +26,7 @@ export class RoomView extends Phaser.GameObjects.Container {
   private tradingPostBtn: TextButton;
   private tanneryBtn: TextButton;
   private smokehouseBtn: TextButton;
+  private workshopBtn: TextButton;
 
   // Trading Post Buy Section
   private buyTitle: Phaser.GameObjects.Text;
@@ -181,6 +182,18 @@ export class RoomView extends Phaser.GameObjects.Container {
       }
     });
 
+    this.workshopBtn = new TextButton(scene, 90, 455, {
+      text: '工坊',
+      width: 140,
+      height: 38,
+      onClick: () => {
+        const state = (scene as any).gameState as GameData;
+        if (state) {
+          VillageSystem.getInstance().build(state, 'workshop');
+        }
+      }
+    });
+
     this.add([
       this.statusText,
       this.warmthText,
@@ -194,7 +207,8 @@ export class RoomView extends Phaser.GameObjects.Container {
       this.lodgeBtn,
       this.tradingPostBtn,
       this.tanneryBtn,
-      this.smokehouseBtn
+      this.smokehouseBtn,
+      this.workshopBtn
     ]);
 
     // 4. Trading Post Buy Section (260 x Y buttons, title at x = 190)
@@ -368,6 +382,14 @@ export class RoomView extends Phaser.GameObjects.Container {
         state.unlockedBuildings['smokehouse'] = true;
       }
 
+      if (
+        (state.resources.wood >= 150 && (state.resources.leather || 0) >= 20) ||
+        (state.resources.fur || 0) >= 100 ||
+        (state.buildings.workshop || 0) > 0
+      ) {
+        state.unlockedBuildings['workshop'] = true;
+      }
+
       // 1. Traps (10 + n*10 wood, max 10)
       const trapCount = state.buildings.traps || 0;
       const trapCost = 10 + trapCount * 10;
@@ -446,7 +468,19 @@ export class RoomView extends Phaser.GameObjects.Container {
       });
       placeBuildingBtn(this.smokehouseBtn, Boolean(state.unlockedBuildings['smokehouse']), !isSmokehouseMaxed);
 
-      // 8. Trading Post Buy Section (購買:)
+      // 8. Workshop (工坊, unlocks when wood >= 150 && leather >= 20, or workshop built)
+      const workshopCount = state.buildings.workshop || 0;
+      const isWorkshopMaxed = workshopCount >= 1;
+      this.workshopBtn.setTooltipProvider(() => {
+        if (isWorkshopMaxed) return '已建造完成';
+        return [
+          { name: '木頭', amount: 400 },
+          { name: '皮革', amount: 100 }
+        ];
+      });
+      placeBuildingBtn(this.workshopBtn, Boolean(state.unlockedBuildings['workshop']), !isWorkshopMaxed);
+
+      // 9. Trading Post Buy Section (購買:)
       const hasTradingPost = (state.buildings.tradingPost || 0) > 0;
       this.buyTitle.setVisible(hasTradingPost);
       this.buyTitle.setColor(theme.textSecondary);

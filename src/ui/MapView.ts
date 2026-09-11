@@ -62,7 +62,7 @@ export class MapView extends Phaser.GameObjects.Container {
       20,
       15,
       '── 荒野遠征：行囊整裝 ──',
-      createTextStyle('14px', '#38bdf8')
+      createTextStyle('14px', '#e2e8f0')
     );
 
     const prepDesc = scene.add.text(
@@ -75,7 +75,7 @@ export class MapView extends Phaser.GameObjects.Container {
     // 肉乾列：標籤(x:20) -> [-5](x:120) -> [+5](x:160) -> 數量文字(x:195)
     const meatLabel = scene.add.text(
       20,
-      100,
+      78,
       '攜帶肉乾：',
       createTextStyle('13px', '#e2e8f0')
     );
@@ -110,13 +110,13 @@ export class MapView extends Phaser.GameObjects.Container {
       195,
       100,
       '0 (庫存: 0)',
-      createTextStyle('13px', '#facc15', true)
+      createTextStyle('13px', '#e2e8f0', true)
     );
 
     // 火把列：標籤(x:20) -> [-1](x:120) -> [+1](x:160) -> 數量文字(x:195)
     const torchLabel = scene.add.text(
       20,
-      140,
+      119,
       '攜帶火把：',
       createTextStyle('13px', '#e2e8f0')
     );
@@ -151,21 +151,21 @@ export class MapView extends Phaser.GameObjects.Container {
       195,
       140,
       '0 (庫存: 0)',
-      createTextStyle('13px', '#facc15', true)
+      createTextStyle('13px', '#e2e8f0', true)
     );
 
     this.prepWaterText = scene.add.text(
       20,
       185,
       '水壺滿載容量：10 單位 (遠征出發時自動裝滿清泉)',
-      createTextStyle('12px', '#60a5fa')
+      createTextStyle('12px', '#94a3b8')
     );
 
     this.prepWeaponText = scene.add.text(
       20,
       215,
       '預計裝備武器：赤手空拳',
-      createTextStyle('12px', '#a78bfa')
+      createTextStyle('12px', '#94a3b8')
     );
 
     this.embarkBtn = new TextButton(scene, 140, 270, {
@@ -206,28 +206,28 @@ export class MapView extends Phaser.GameObjects.Container {
       20,
       10,
       '生命值: 20 / 20',
-      createTextStyle('12px', '#ef4444')
+      createTextStyle('12px', '#e2e8f0')
     );
 
     this.waterText = scene.add.text(
       170,
       10,
       '水壺: 10 / 10',
-      createTextStyle('12px', '#38bdf8')
+      createTextStyle('12px', '#94a3b8')
     );
 
     this.suppliesText = scene.add.text(
       290,
       10,
       '肉乾: 10 | 火把: 2',
-      createTextStyle('12px', '#facc15')
+      createTextStyle('12px', '#94a3b8')
     );
 
     this.weaponText = scene.add.text(
       20,
       32,
       '武器: 鋼劍',
-      createTextStyle('11px', '#c084fc')
+      createTextStyle('11px', '#94a3b8')
     );
 
     this.locationText = scene.add.text(
@@ -237,10 +237,10 @@ export class MapView extends Phaser.GameObjects.Container {
       createTextStyle('11px', '#94a3b8')
     );
 
-    const mapBoxBg = scene.add.rectangle(20, 55, 280, 280, 0x090a0f);
+    const mapBoxBg = scene.add.rectangle(20, 55, 280, 280, 0x000000);
     mapBoxBg.setOrigin(0);
     const mapBoxBorder = scene.add.rectangle(20, 55, 280, 280);
-    mapBoxBorder.setStrokeStyle(1, 0x334155);
+    mapBoxBorder.setStrokeStyle(1, 0x475569);
     mapBoxBorder.setFillStyle(0x000000, 0);
     mapBoxBorder.setOrigin(0);
 
@@ -350,10 +350,10 @@ export class MapView extends Phaser.GameObjects.Container {
     // 3. 戰鬥面板
     this.combatContainer = scene.add.container(0, 0);
 
-    const combatBg = scene.add.rectangle(20, 50, 440, 350, 0x181014, 0.98);
+    const combatBg = scene.add.rectangle(20, 50, 440, 350, 0x000000, 0.98);
     combatBg.setOrigin(0);
     const combatBorder = scene.add.rectangle(20, 50, 440, 350);
-    combatBorder.setStrokeStyle(2, 0xe11d48);
+    combatBorder.setStrokeStyle(1, 0x475569);
     combatBorder.setFillStyle(0x000000, 0);
     combatBorder.setOrigin(0);
 
@@ -361,28 +361,28 @@ export class MapView extends Phaser.GameObjects.Container {
       35,
       65,
       '── 遭遇戰鬥！ ──',
-      createTextStyle('15px', '#f43f5e')
+      createTextStyle('15px', '#e2e8f0')
     );
 
     this.combatEnemyName = scene.add.text(
       35,
       95,
       '遭遇敵人：狂暴野狗',
-      createTextStyle('13px', '#f8fafc')
+      createTextStyle('13px', '#e2e8f0')
     );
 
     this.combatEnemyHp = scene.add.text(
       35,
       120,
       '生命值：12 / 12',
-      createTextStyle('12px', '#fb7185')
+      createTextStyle('12px', '#94a3b8')
     );
 
     this.combatEnemyTimer = scene.add.text(
       240,
       120,
       '敵人攻擊倒數: 0.0s',
-      createTextStyle('12px', '#f97316')
+      createTextStyle('12px', '#64748b')
     );
 
     const weaponDefs = [
